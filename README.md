@@ -37,7 +37,7 @@ npm start
 
 ## 部署（日本服务器 + 宝塔面板）
 
-代码推到 GitHub 后，GitHub Actions 自动构建镜像（`.github/workflows/docker.yml`），推到 `ghcr.io/用户名/仓库名`。服务器只需要 `compose.yaml` 和 `.env` 两个文件，拉镜像运行。域名、HTTPS、反向代理在宝塔里配置。
+代码推到 GitHub 后，GitHub Actions 自动构建镜像（`.github/workflows/docker.yml`），推到 `ghcr.io/weizhixiong123/gpt-verify`。服务器只需要三个文件：`docker-compose.yml`、`env.production.example`、`update.sh`。域名、HTTPS、反向代理在宝塔里配置。
 
 ### 1. 推到 GitHub
 
@@ -55,20 +55,23 @@ git push -u origin main
 
 ### 2. 服务器拉镜像并启动
 
-1. 宝塔「文件」→ 新建目录 `/www/wwwroot/gpt-verify/`，上传 `compose.yaml` 和 `.env.example`
-2. 把 `.env.example` 复制为 `.env`，编辑：
-   `IMAGE=ghcr.io/weizhixiong123/gpt-verify:latest`（全小写）、`FIVESIM_TOKEN`、`ADMIN_TOKEN`（改成长随机串）、`FIVESIM_MOCK=0`、`TRUST_PROXY=1`
-3. 仓库是 Private 时，镜像也是私有的，服务器要先登录一次：
-   GitHub「Settings → Developer settings → Personal access tokens → Tokens (classic)」新建 token，只勾 `read:packages`
-4. 宝塔「终端」：
+1. 宝塔「文件」→ 新建目录 `/opt/gpt-verify/`，上传 `docker-compose.yml`、`env.production.example`、`update.sh`
+2. 宝塔「终端」：
 
 ```bash
-cd /www/wwwroot/gpt-verify
-docker login ghcr.io -u 你的GitHub用户名     # 密码填上一步的 token；公开仓库可跳过
-docker compose pull
-docker compose up -d
-docker compose ps        # STATUS 显示 healthy 即成功
+cd /opt/gpt-verify
+cp env.production.example .env
+vim .env                      # 必填 ADMIN_TOKEN（openssl rand -base64 24 生成）和 FIVESIM_TOKEN
+chmod +x update.sh
+
+# 仓库是 Private 时镜像也私有，登录一次（密码填 GitHub token，只需 read:packages 权限，
+# 在 GitHub「Settings → Developer settings → Personal access tokens → Tokens (classic)」新建）
+docker login ghcr.io -u Weizhixiong123
+
+./update.sh                   # 拉镜像、启动、等健康检查通过
 ```
+
+**以后更新**：本机 `git push` → 等 Actions 变绿 → 服务器 `cd /opt/gpt-verify && ./update.sh`（`.env` 和数据库都保留）。
 
 ### 3. 添加站点
 
@@ -117,13 +120,11 @@ location ^~ / {
 - `https://gptsucong.com/sms/admin` 登录后能看到 5SIM 余额
 - 宝塔「安全」里**不需要**放行 3000 端口（容器只监听本机）
 
-### 常用操作（宝塔终端，在 `/www/wwwroot/gpt-verify` 下）
+### 常用操作（宝塔终端，在 `/opt/gpt-verify` 下）
 
 ```bash
-# 更新：本机 git push → 等 Actions 变绿 → 服务器执行
-docker compose pull && docker compose up -d
-
-docker compose restart        # 只改了 .env 时重启
+./update.sh                   # 更新到 GitHub 最新构建的版本
+docker compose up -d          # 只改了 .env 时，重新加载配置
 docker compose logs -f        # 看日志，Ctrl+C 退出
 docker compose down           # 停止（数据保留）
 
@@ -180,4 +181,10 @@ lib/routes.js      线路排序（实时成功率、本站统计、熔断）
 lib/service.js     CDK / 买号 / 换号 / 轮询 核心逻辑
 public/sms.html    用户页面
 public/admin.html  管理后台
+
+Dockerfile                    镜像构建（GitHub Actions 用）
+.github/workflows/docker.yml  push 到 main 自动构建并推送到 ghcr.io
+docker-compose.yml            服务器：拉镜像运行
+env.production.example        服务器：.env 模板
+update.sh                     服务器：部署 / 更新
 ```

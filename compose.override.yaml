@@ -1,5 +1,0 @@
-# 仅在有源代码的地方（本地开发）生效：docker compose 会自动叠加这个文件，用当前代码现场构建镜像。
-# 服务器只需要 compose.yaml + .env，直接拉 GitHub 构建好的镜像，不需要这个文件。
-services:
-  gpt-verify:
-    build: .

@@ -15,7 +15,14 @@ const BASE = config.basePath;
 // 页面读一次缓存，把 __BASE__ 替换成挂载路径
 const pages = {};
 for (const name of ['sms', 'admin']) {
-  pages[name] = fs.readFileSync(path.join(__dirname, 'public', `${name}.html`), 'utf8').replaceAll('__BASE__', BASE);
+  pages[name] = fs
+    .readFileSync(path.join(__dirname, 'public', `${name}.html`), 'utf8')
+    .replaceAll('__BASE__', BASE)
+    // 客服联系方式直接写进页面（转义 <，防止配置内容破坏 script 标签）
+    .replaceAll(
+      '__SUPPORT_JSON__',
+      JSON.stringify({ wechat: config.supportWechat, qq: config.supportQq }).replace(/</g, '\\u003c')
+    );
 }
 const assets = {
   '/theme.css': { type: 'text/css; charset=utf-8', body: fs.readFileSync(path.join(__dirname, 'public', 'theme.css')) },
@@ -240,6 +247,10 @@ async function handle(req, res) {
   if (req.method === 'POST' && route === '/api/swap') {
     const { cdk, reason } = await readJson(req);
     return withCdk(req, res, () => service.swap(cdk, reason === 'rejected' ? 'rejected' : 'nocode'));
+  }
+  if (req.method === 'POST' && route === '/api/void') {
+    const { cdk } = await readJson(req);
+    return withCdk(req, res, () => service.voidCdk(cdk));
   }
   if (req.method === 'GET' && route === '/api/routes') {
     return sendJson(res, 200, routes.publicTop());

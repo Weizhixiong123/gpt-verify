@@ -45,16 +45,23 @@
   .todo li::before { content: counter(s); font: 500 16px/1.5 var(--num); color: var(--muted); width: 12px; flex: none; }
   .todo b { color: var(--text); font-weight: 600; }
 
-  .waiting { display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 12px 16px; border-radius: 12px; font-size: 14px;
-             background: color-mix(in srgb, var(--info) 8%, transparent); color: var(--text-2); }
-  .waiting b { font-family: var(--num); color: var(--text); font-weight: 500; }
-  .waiting .spinner { width: 16px; height: 16px; border-top-color: var(--info); }
+  .swap-tip { margin: 20px 2px 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+  .swap-tip.due { color: var(--warn); }
   .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
   .acts button { padding: 11px 12px; font-size: 14px; }
 
   .done-head { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 16px; font-weight: 600; }
   .done-head svg { width: 22px; height: 22px; color: var(--accent); }
   .sms { margin: 14px 0 0; color: var(--text-2); font-size: 14px; }
+  /* 收到码后仍显示用过的号码 */
+  .used-phone { display: flex; align-items: center; gap: 0; margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; }
+  .used-phone > div { padding: 12px 16px; }
+  .used-phone > div + div { border-left: 1px solid var(--line); flex: 1; min-width: 0; }
+  .used-phone > div > span { display: block; font-size: 12px; color: var(--muted); }
+  .used-phone b { display: block; margin-top: 2px; font-size: 16px; font-weight: 600; }
+  .used-phone .ph b { font: 500 20px/1.3 var(--num); font-variant-numeric: tabular-nums; }
+  .used-phone .dial { color: var(--text-2); margin-right: 8px; }
+  .used-phone button { flex: none; margin-right: 14px; }
   .tip { margin: 20px 0 0; padding: 12px 16px; border-radius: 12px; background: var(--soft); color: var(--text-2); font-size: 13px; }
 
   .replaced { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; font-size: 13px; background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--text); }
@@ -66,8 +73,7 @@
   #p-rate { font-family: var(--num); color: var(--accent); }
 
   /* 线路排名：卡片底部的一条浅底色带，像仪表读数 */
-  .panel { overflow: hidden; }
-  .rank { margin: 28px -32px -32px; padding: 20px 32px 22px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--soft) 55%, var(--card)); }
+  .rank { padding: 20px 22px 22px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; }
   .rank-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .rank-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
   .rank-head span { font-size: 12px; color: var(--muted); }
@@ -92,49 +98,125 @@
   .reset:hover { background: none; color: var(--text); }
 
   /* 流程：细线分隔的横排 */
-  .steps4 { display: grid; grid-template-columns: repeat(4, 1fr); margin: 48px 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .steps4 .s { display: flex; gap: 12px; padding: 20px 14px 20px 0; }
-  .steps4 .s + .s { padding-left: 14px; border-left: 1px solid var(--line); }
-  .steps4 .n { font: 500 22px/1.2 var(--num); color: var(--muted); }
-  .steps4 b { display: block; font-size: 14px; font-weight: 600; }
-  .steps4 span { display: block; color: var(--text-2); font-size: 12px; margin-top: 2px; }
+  /* 进度条：每一步顶部一条线，走到的步骤线和编号变绿 */
+  .steps4 { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 20px; padding: 0; }
+  .steps4 .s { display: flex; gap: 10px; padding: 12px 0 0; border-top: 3px solid var(--line); transition: border-color .3s; }
+  .steps4 .n { font: 500 20px/1.2 var(--num); color: var(--muted); transition: color .3s; }
+  .steps4 b { display: block; font-size: 14px; font-weight: 600; color: var(--text-2); transition: color .3s; }
+  .steps4 span { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .steps4 .s.on { border-top-color: var(--accent); }
+  .steps4 .s.on .n { color: var(--accent); }
+  .steps4 .s.on b { color: var(--text); }
 
-  /* 常见问题：只用横线分隔 */
-  .faq-sec { margin: 72px 0 0; }
-  .faq-sec h2 { font-size: 28px; font-weight: 300; line-height: 1.2; margin: 0 0 20px; letter-spacing: -.02em; }
-  .faq { border-top: 1px solid var(--text); border-radius: 2px; }
-  .faq details { border-bottom: 1px solid var(--line); }
-  .faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 2px; font-size: 16px; font-weight: 500; }
-  .faq summary::-webkit-details-marker { display: none; }
-  .faq summary::after { content: ""; flex: none; width: 8px; height: 8px; border: solid var(--text-2); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(-2px, -2px); transition: transform .2s; }
-  .faq details[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
-  .faq p { margin: 0; padding: 0 32px 20px 2px; color: var(--text-2); font-size: 15px; line-height: 1.75; }
 
   footer.container { max-width: 640px; }
-  .foot { margin: 72px 0 0; border-top: 1px solid var(--line); text-align: left; }
+
+  /* 确认弹窗：和主卡片同一套样式；手机上从底部弹出 */
+  .cfm { width: min(420px, calc(100vw - 32px)); max-width: none; padding: 0; border: 1px solid var(--line); border-radius: 20px;
+         background: var(--card); color: var(--text); box-shadow: 0 24px 60px rgba(0, 0, 0, .18); }
+  .cfm::backdrop { background: rgba(0, 0, 0, .35); }
+  .cfm[open] { animation: cfm-in .18s var(--ease-out); }
+  @keyframes cfm-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+  .cfm-box { padding: 26px 26px 22px; }
+  .cfm h3 { margin: 0 0 10px; font-size: 18px; font-weight: 600; line-height: 1.4; }
+  .cfm p { margin: 0; font-size: 14px; line-height: 1.75; color: var(--text-2); }
+  .cfm-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
+  .cfm-acts button { padding: 11px; }
+  .cfm-acts button.danger { background: var(--danger); color: #fff; }
+  .cfm-acts button.danger:hover { background: color-mix(in srgb, var(--danger) 85%, #000); }
+  @media (max-width: 600px) {
+    .cfm { width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; border-bottom: 0; }
+    .cfm-box { padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .cfm[open] { animation: none; } }
+
+  /* 布局：全部内容放在同一个面板里（页面上唯一有圆角和阴影的外框），不再拼一张张小卡片。
+     宽屏：左边浅灰侧栏（使用前请注意；联系客服贴底），右边白色操作区（步骤条 → 表单/号码 → 线路排名，细线分隔），
+           两边同高，不会出现高低不齐。
+     窄屏：同一个面板竖排：使用前请注意 → 操作区 → 线路排名 → 联系客服 */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr); background: var(--card); border: 1px solid var(--line);
+            border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; }
+  .rail { display: contents; }
+  .note-card { order: 1; }
+  .center { order: 2; }
+  .layout > .rank { order: 3; }
+  .contact { order: 4; }
+
+  .center { padding: 24px 22px 20px; }
+  /* 操作区和排名在面板里平铺，去掉它们自己的卡片外观 */
+  .layout .panel { background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+  .layout > .rank { padding: 20px 22px 24px; background: none; border: 0; border-radius: 0; border-top: 1px solid var(--line); }
+  .center .formerr { margin-top: 16px; }
+  .links { display: flex; justify-content: center; gap: 20px; margin-top: 18px; }
+  .links .reset { margin: 0; }
+  .nav-void { color: var(--text-2); font-size: 13px; }
+  .nav-void:hover:not(:disabled) { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); background: transparent; }
+
+  .note-card, .contact { padding: 18px 22px; background: color-mix(in srgb, var(--soft) 60%, var(--card)); }
+  .note-card { border-bottom: 1px solid var(--line); }
+  .contact { border-top: 1px solid var(--line); }
+  .note-card h2, .contact h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+  .note-card h2::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+  .note-card ul { margin: 0; padding: 0 0 0 18px; }
+  .note-card li { font-size: 14px; line-height: 1.75; color: var(--text-2); }
+  .note-card li + li { margin-top: 8px; }
+  .note-card b { color: var(--text); font-weight: 600; }
+
+  .ct-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+  .ct-row + .ct-row { border-top: 1px solid var(--line); }
+  .ct-row .k { flex: none; width: 36px; font-size: 13px; color: var(--muted); }
+  .ct-row b { flex: 1; min-width: 0; font: 500 16px/1.3 var(--num); word-break: break-all; }
+  .ct-row button { flex: none; background: var(--card); }
+  .ct-note { margin: 10px 0 0; padding: 10px 0 0 16px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.7; color: var(--muted); }
+  .ct-note li + li { margin-top: 4px; }
+  .ct-note b { color: var(--text-2); font-weight: 600; }
+
+  @media (min-width: 1000px) {
+    main.container, .topnav .container, footer.container { max-width: 1120px; }
+    .page-title { text-align: left; padding: 64px 0 36px; }
+    .page-title h1 { font-size: 52px; line-height: 1.12; margin-bottom: 14px; }
+    .page-title p { font-size: 17px; }
+    .layout { grid-template-columns: 320px minmax(0, 1fr); }
+    /* 左侧栏也分两行：「使用前请注意」对齐步骤条和表单，「联系客服」对齐「线路排名」，左右分隔线连成一条 */
+    .note-card, .contact { grid-column: 1; padding: 32px 28px; border-right: 1px solid var(--line); }
+    .note-card { grid-row: 1; border-bottom: 0; }
+    .contact { grid-row: 2; padding-top: 24px; }
+    .center { grid-column: 2; grid-row: 1; padding: 32px 40px 24px; }
+    .center .steps4 { margin-bottom: 28px; }
+    .layout > .rank { grid-column: 2; grid-row: 2; padding: 24px 40px 32px; }
+    /* 线路排名：6 个读数横排一行 */
+    .layout > .rank .rank-grid { grid-template-columns: repeat(6, 1fr); column-gap: 18px; }
+    .layout > .rank .rank-grid .p { font-size: 26px; }
+    /* 横排时「你的号码」放到进度条下面，不把这一格的数字挤低 */
+    .layout > .rank .rank-grid li { position: relative; }
+    .layout > .rank .rank-grid .you { position: absolute; left: 0; top: calc(100% + 5px); width: auto; white-space: nowrap; margin-left: 0; }
+    .layout > .rank .rank-desc { margin-top: 34px; }
+  }
+  .foot { margin: 64px 0 0; border-top: 1px solid var(--line); text-align: left; }
 
   @media (max-width: 600px) {
     .page-title { padding: 28px 0 22px; }
     .page-title h1 { font-size: 30px; }
     .page-title p { font-size: 15px; }
-    .panel { padding: 22px 18px; border-radius: 18px; }
-    .rank { margin: 24px -18px -22px; padding: 18px 18px 20px; }
     .rank-grid { column-gap: 14px; }
     .rank-grid .p { font-size: 24px; }
     .rank-grid .you { display: none; }
     .reading { padding: 14px 16px; }
+    .used-phone > div { padding: 10px 12px; }
+    .used-phone b { font-size: 15px; }
+    .used-phone .ph b { font-size: 16px; }
+    .used-phone .dial { margin-right: 5px; }
+    .used-phone button { margin-right: 10px; padding: 4px 10px; }
     .reading.phone { padding: 12px 14px; }
     .reading.phone .dial { padding-right: 12px; margin-right: 12px; }
     .reading.phone .dial span { font-size: 20px; }
     .reading.phone .v { font-size: 24px; }
     .reading.code .v { font-size: 44px; }
-    .steps4 { grid-template-columns: 1fr 1fr; }
-    .steps4 .s { padding: 16px 10px 16px 0; }
-    .steps4 .s + .s { padding-left: 0; border-left: 0; }
-    .steps4 .s:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--line); }
-    .steps4 .s:nth-child(n + 3) { border-top: 1px solid var(--line); }
-    .faq-sec { margin-top: 56px; }
-    .faq-sec h2 { font-size: 24px; }
+    .steps4 { gap: 6px; }
+    .steps4 .s { flex-direction: column; gap: 2px; padding-top: 8px; }
+    .steps4 .n { font-size: 16px; }
+    .steps4 b { font-size: 13px; }
+    .steps4 span { display: none; }
     .foot { margin-top: 56px; }
   }
 </style>
@@ -145,6 +227,8 @@
 <header class="topnav" id="topnav">
   <div class="container">
     <a class="logo" href="__BASE__" aria-label="GPT 速充 手机验证"><span class="brand-icon" aria-hidden="true"></span><span>GPT 速充</span></a>
+    <!-- 注销放在右上角，远离换号等主操作，避免误点 -->
+    <button class="ghost sm nav-void" id="b-void" hidden>注销 CDK（申请退款）</button>
   </div>
 </header>
 
@@ -155,6 +239,17 @@
   </section>
 
   <div class="rise-2">
+   <div class="layout">
+
+    <div class="center">
+    <!-- 进度：用户走到哪一步，那一步及之前的变绿 -->
+    <ol class="steps4" id="steps" aria-label="验证进度">
+      <li class="s"><div class="n">1</div><div><b>输入 CDK</b><span>闲鱼发货的卡密</span></div></li>
+      <li class="s"><div class="n">2</div><div><b>填写号码</b><span>在 ChatGPT 选好国家</span></div></li>
+      <li class="s"><div class="n">3</div><div><b>发送验证码</b><span>点击后回到本页</span></div></li>
+      <li class="s"><div class="n">4</div><div><b>自动显示</b><span>通常几十秒内到达</span></div></li>
+    </ol>
+
     <section class="panel">
       <!-- 1. 输入 CDK -->
       <form id="v-input">
@@ -181,7 +276,7 @@
           <li><span>点击 <b>发送验证码</b></span></li>
           <li><span>停留在本页，验证码到达后会自动显示</span></li>
         </ol>
-        <div class="waiting"><span class="spinner"></span><span>等待验证码中，已等待 <b id="p-elapsed">0:00</b></span></div>
+        <p class="swap-tip" id="p-tip"></p>
         <div class="acts">
           <button class="ghost" id="b-swap">没收到码，换号</button>
           <button class="ghost" id="b-reject">号码被拒，换号</button>
@@ -196,7 +291,11 @@
         </p>
         <div class="reading code"><span class="v" id="d-code"></span><button class="ghost sm" data-copy="d-code">复制</button></div>
         <p class="sms" id="d-text"></p>
-        <div class="meta"><span>手机号 <span class="mono" id="d-phone"></span></span></div>
+        <div class="used-phone">
+          <div><span>号码国家</span><b id="d-country"></b></div>
+          <div class="ph"><span>使用的手机号</span><b><span class="dial" id="d-dial"></span><span id="d-phone"></span></b></div>
+          <button class="ghost sm" data-copy="d-phone">复制号码</button>
+        </div>
         <p class="tip">此 CDK 已使用完毕。号码有效期内如果重新发送验证码，新的验证码也会显示在这里。</p>
       </div>
 
@@ -212,38 +311,58 @@
         <p class="state-msg" id="s-text" style="margin:0"></p>
       </div>
 
-      <!-- 线路排名：嵌在卡片底部，和上面的操作区是一个整体 -->
-      <div class="rank" id="rates" hidden>
-        <div class="rank-head"><h2>线路排名</h2><span id="rates-time"></span></div>
-        <ol class="rank-grid" id="rate-list"></ol>
-        <p class="rank-desc">百分比是<b>接码成功率</b>：该国家号码最近收到 ChatGPT 验证码的比例，每 10 分钟更新。取号时自动分配第 1 名，没收到验证码换号时依次换到下一名。</p>
-      </div>
     </section>
 
     <p class="err formerr" id="err" hidden></p>
-    <button class="reset" id="b-reset" hidden>使用其他 CDK</button>
+    <div class="links">
+      <button class="reset" id="b-reset" hidden>使用其他 CDK</button>
+    </div>
+    </div>
 
-    <section class="steps4" aria-label="验证流程">
-      <div class="s"><div class="n">1</div><div><b>输入 CDK</b><span>闲鱼发货的卡密</span></div></div>
-      <div class="s"><div class="n">2</div><div><b>填写号码</b><span>在 ChatGPT 选好国家</span></div></div>
-      <div class="s"><div class="n">3</div><div><b>发送验证码</b><span>点击后回到本页</span></div></div>
-      <div class="s"><div class="n">4</div><div><b>自动显示</b><span>通常几十秒内到达</span></div></div>
-    </section>
-
-    <section class="faq-sec">
-      <h2>常见问题</h2>
-      <div class="faq">
-        <details><summary>接码成功率是什么意思？</summary><p>指某个国家的号码最近一段时间内成功收到 ChatGPT 验证码的比例，根据真实接码数据统计，每 10 分钟更新。成功率不是 100%，是因为部分号码会被 ChatGPT 拒绝或迟迟收不到短信；遇到这种情况点换号即可，系统会换到其他国家，CDK 不会作废。</p></details>
-        <details><summary>一直收不到验证码怎么办？</summary><p>先确认 ChatGPT 里选择的国家和号码一致，并且已经点了「发送验证码」。等待 2 分钟仍未收到，点「没收到码，换号」，系统会换一条其他线路的号码。</p></details>
-        <details><summary>ChatGPT 提示号码无法使用？</summary><p>点「号码被拒，换号」，不用等待，立即更换新号码。</p></details>
-        <details><summary>换号有次数限制吗？</summary><p>每个 CDK 可以换号多次，剩余次数显示在号码下方。次数用完仍未成功，请联系客服处理。</p></details>
-        <details><summary>CDK 什么时候作废？</summary><p>只有成功收到验证码后才会作废。号码超时、换号都不会让 CDK 失效。</p></details>
-        <details><summary>不小心关掉了页面？</summary><p>在同一个浏览器重新打开本页会自动恢复；换了设备就重新输入 CDK，会显示原来的号码和验证码。</p></details>
-        <details><summary>这是 OpenAI 官方的服务吗？</summary><p>不是。GPT 速充是第三方服务，与 OpenAI 没有关联。</p></details>
+    <!-- 左侧信息栏：使用须知 → 联系客服（窄屏时拆开，须知排在主卡片前，联系客服排在最后） -->
+    <aside class="rail">
+      <div class="note-card">
+        <h2>使用前请注意</h2>
+        <ul>
+          <li><b>先打开梯子（VPN）</b>再操作，整个过程保持开启，否则 ChatGPT 可能发不出验证码。</li>
+          <li><b>Mac 用户</b>：用自带的 Safari 或必应（Bing）浏览器时，发送短信可能会被拦截，请换用谷歌浏览器（Chrome）。</li>
+        </ul>
       </div>
-    </section>
+
+      <div class="contact" id="contact" hidden>
+        <h2>联系客服</h2>
+        <div class="ct-row" id="ct-wx"><span class="k">微信</span><b id="ct-wx-v"></b><button class="ghost sm" data-copy="ct-wx-v">复制</button></div>
+        <div class="ct-row" id="ct-qq"><span class="k">QQ</span><b id="ct-qq-v"></b><button class="ghost sm" data-copy="ct-qq-v">复制</button></div>
+        <ul class="ct-note" id="ct-note" hidden>
+          <li>闲鱼风控严格，遇到问题请直接加上面的微信或 QQ 联系客服</li>
+          <li>联系时请发送你的 CDK，方便快速处理</li>
+          <li>申请退款需要先注销 CDK；<b>已获取到验证码的不能退款</b></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- 线路排名：宽屏在右侧主卡片下方横排一行，窄屏排在主卡片后 -->
+    <div class="rank" id="rates" hidden>
+      <div class="rank-head"><h2>线路排名</h2><span id="rates-time"></span></div>
+      <ol class="rank-grid" id="rate-list"></ol>
+      <p class="rank-desc">百分比是<b>接码成功率</b>：该国家号码最近收到 ChatGPT 验证码的比例，每 10 分钟更新。取号时自动分配第 1 名，没收到验证码换号时依次换到下一名。</p>
+    </div>
+
+   </div>
   </div>
 </main>
+
+<!-- 确认弹窗 -->
+<dialog class="cfm" id="cfm" aria-labelledby="cfm-title">
+  <div class="cfm-box">
+    <h3 id="cfm-title"></h3>
+    <p id="cfm-text"></p>
+    <div class="cfm-acts">
+      <button type="button" class="ghost" id="cfm-no"></button>
+      <button type="button" id="cfm-yes"></button>
+    </div>
+  </div>
+</dialog>
 
 <footer class="container"><p class="foot">本站为第三方服务，与 OpenAI 无关</p></footer>
 
@@ -260,6 +379,14 @@ function show(view) {
     current = view;
   }
   $('b-reset').hidden = view === 'v-input';
+  // 售后说明（风控、发 CDK、退款规则）在输入 CDK 时不显示，拿到号码后再出现
+  $('ct-note').hidden = view === 'v-input';
+  // 只有还没收到验证码、没被停用/注销的 CDK 可以注销
+  $('b-void').hidden = view === 'v-input' || !state || !['unused', 'active'].includes(state.status);
+  // 输入 CDK → 第 1 步；拿到号码 → 1–3 步（填号码、发验证码在 ChatGPT 里做，页面无法区分）；收到码 → 全部
+  const reached = { 'v-input': 1, 'v-phone': 3, 'v-done': 4 }[view] || 1;
+  document.querySelectorAll('#steps .s').forEach((s, i) => s.classList.toggle('on', i < reached));
+  drawRates();
 }
 function error(msg) { $('err').textContent = msg || ''; $('err').hidden = !msg; }
 function store(v) { try { v ? localStorage.setItem('cdk', v) : localStorage.removeItem('cdk'); } catch {} }
@@ -282,7 +409,7 @@ async function act(btn, fn) {
   try { render(await fn()); }
   catch (e) {
     error(e.message);
-    if (e.code === 'NOT_FOUND' || e.code === 'DISABLED') {
+    if (e.code === 'NOT_FOUND' || e.code === 'DISABLED' || e.code === 'VOIDED') {
       // 这个 CDK 用不了：不再记住它，选中输入框方便直接粘贴新的
       store(null); cdk = null;
       if (es) { es.close(); es = null; }
@@ -302,10 +429,16 @@ function render(s) {
   const o = s.order;
 
   if (s.status === 'disabled') { $('s-text').textContent = `此 CDK 已停用，${s.support}`; return show('v-stop'); }
+  if (s.status === 'voided') {
+    $('s-text').textContent = `此 CDK 已注销，号码已释放。如需退款，请联系客服并发送 CDK：${s.cdk}`;
+    return show('v-stop');
+  }
   if (s.status === 'used' && o && o.code) {
     $('d-code').textContent = o.code;
     $('d-text').textContent = o.smsText || '';
-    $('d-phone').textContent = o.dialCode ? `${o.dialCode} ${o.local}` : o.phone;
+    $('d-country').textContent = o.countryName || '—';
+    $('d-dial').textContent = o.dialCode || '';
+    $('d-phone').textContent = o.dialCode ? o.local : o.phone;
     return show('v-done');
   }
   if (o && o.status === 'pending') {
@@ -339,16 +472,23 @@ function tick() {
   const o = state && state.order;
   if (!o || o.status !== 'pending' || current !== 'v-phone') return;
   const t = now();
-  $('p-elapsed').textContent = mmss(Math.max(0, Math.floor((t - o.createdAt) / 1000)));
   $('p-expire').textContent = mmss(Math.max(0, Math.floor((o.expiresAt - t) / 1000)));
-  if (busy) return;
   const noMore = state.numbersLeft <= 0;
   const wait = Math.ceil((o.swapAt - t) / 1000);
+  // 提示和按钮一致：满 SWAP_COOLDOWN_SEC（默认 2 分钟）才能点「没收到码，换号」
+  const mins = Math.max(1, Math.round((o.swapAt - o.createdAt) / 60000));
+  $('p-tip').classList.toggle('due', wait <= 0 && !noMore);
+  // 两个按钮都是换一个新号码，区别在什么时候用：一直收不到码 → 等满冷却时间再换；ChatGPT 说号码不能用 → 立即换
+  $('p-tip').textContent = noMore ? `验证码一般 1 分钟内到达。换号次数已用完，如果一直收不到，${state.support}。`
+    : wait > 0 ? `验证码一般 1 分钟内到达。一直收不到，${mins} 分钟后可点「没收到码，换号」；ChatGPT 提示号码无法使用，直接点「号码被拒，换号」。`
+    : `已经等了 ${mins} 分钟，还没收到验证码，可以点「没收到码，换号」。`;
+  if (busy) return;
   $('b-swap').disabled = noMore || wait > 0;
-  $('b-swap').textContent = noMore ? '换号次数已用完' : wait > 0 ? `${wait}s 后可换号` : '没收到码，换号';
+  $('b-swap').textContent = noMore ? '换号次数已用完' : wait > 0 ? `没收到码，换号（${wait}s）` : '没收到码，换号';
   $('b-reject').disabled = noMore;
 }
 setInterval(tick, 1000);
+
 
 // 服务端推送：验证码一到立刻显示
 function listen() {
@@ -366,9 +506,46 @@ $('v-input').addEventListener('submit', (e) => {
   if (v) act($('b-redeem'), () => post('/api/redeem', { cdk: v }));
 });
 $('b-swap').onclick = () => act($('b-swap'), () => post('/api/swap', { cdk, reason: 'nocode' }));
-$('b-reject').onclick = () => {
-  if (confirm('确认 ChatGPT 提示此号码无法使用？将更换新号码。')) act($('b-reject'), () => post('/api/swap', { cdk, reason: 'rejected' }));
+$('b-reject').onclick = async () => {
+  const o = state && state.order;
+  const phone = o ? (o.dialCode ? `${o.dialCode} ${o.local}` : o.phone) : '';
+  const ok = await confirmDialog({
+    title: 'ChatGPT 提示这个号码无法使用？',
+    text: `换号后当前号码 ${phone} 会作废，请在 ChatGPT 里改填新号码。换号后还剩 ${Math.max(0, state.numbersLeft - 1)} 次换号机会。`,
+    ok: '换一个号码',
+  });
+  if (ok) act($('b-reject'), () => post('/api/swap', { cdk, reason: 'rejected' }));
 };
+
+// 注销 CDK（申请退款前）：后端会先取消正在等码的号码，再把 CDK 作废
+$('b-void').onclick = async () => {
+  const ok = await confirmDialog({
+    title: '注销这个 CDK？',
+    text: '注销后 CDK 永久作废，当前号码会被释放，不能再取号。注销后请联系客服并发送 CDK 申请退款。已获取到验证码的 CDK 不能注销。',
+    ok: '确认注销',
+    danger: true,
+  });
+  if (ok) act($('b-void'), () => post('/api/void', { cdk }));
+};
+
+// 页面风格的确认弹窗（替代浏览器自带的 confirm），返回 true / false
+function confirmDialog({ title, text, ok = '确定', cancel = '取消', danger = false }) {
+  const dlg = $('cfm');
+  $('cfm-title').textContent = title;
+  $('cfm-text').textContent = text;
+  $('cfm-yes').textContent = ok;
+  $('cfm-yes').classList.toggle('danger', danger);
+  $('cfm-no').textContent = cancel;
+  return new Promise((resolve) => {
+    const done = (v) => { dlg.close(); resolve(v); };
+    $('cfm-yes').onclick = () => done(true);
+    $('cfm-no').onclick = () => done(false);
+    dlg.oncancel = (e) => { e.preventDefault(); done(false); }; // Esc
+    dlg.onclick = (e) => { if (e.target === dlg) done(false); }; // 点遮罩
+    dlg.showModal();
+    $('cfm-no').focus();
+  });
+}
 $('b-new').onclick = () => act($('b-new'), () => post('/api/number', { cdk }));
 $('b-reset').onclick = () => {
   if (es) es.close();
@@ -389,6 +566,16 @@ document.querySelectorAll('[data-copy]').forEach((btn) => {
   };
 });
 
+// 客服联系方式（服务端从 .env 的 SUPPORT_WECHAT / SUPPORT_QQ 注入，留空就不显示）
+(() => {
+  const sp = __SUPPORT_JSON__;
+  $('ct-wx-v').textContent = sp.wechat || '';
+  $('ct-qq-v').textContent = sp.qq || '';
+  $('ct-wx').hidden = !sp.wechat;
+  $('ct-qq').hidden = !sp.qq;
+  $('contact').hidden = !sp.wechat && !sp.qq;
+})();
+
 // 实时接码成功率
 let rates = null;
 async function loadRates() {
@@ -400,7 +587,8 @@ async function loadRates() {
 function drawRates() {
   if (!rates || !rates.list || !rates.list.length) return;
   const o = state && state.order;
-  const mine = o && (o.status === 'pending' || o.code) ? o.countryName : null;
+  // 只有正在显示号码或验证码时，才标出用户号码所在的国家
+  const mine = o && (current === 'v-phone' || current === 'v-done') ? o.countryName : null;
   $('rate-list').innerHTML = rates.list.map((r, i) => `<li class="${r.name === mine ? 'on' : ''}">
     <span class="top"><span class="n">${i + 1}</span>${r.name}${r.name === mine ? '<span class="you">你的号码</span>' : ''}</span>
     <b class="p">${r.rate}%</b><span class="bar"><i style="width:${r.rate}%"></i></span></li>`).join('');
@@ -415,7 +603,7 @@ const nav = $('topnav');
 addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
 
 // 链接带 ?cdk= 或之前用过，自动恢复
-current = 'v-input';
+show('v-input');
 const initial = new URLSearchParams(location.search).get('cdk') || stored();
 if (initial) { $('cdk').value = initial; $('v-input').requestSubmit(); }
 </script>

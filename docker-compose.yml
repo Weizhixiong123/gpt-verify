@@ -1,7 +1,7 @@
 services:
   gpt-verify:
-    # GitHub Actions 自动构建的镜像，在 .env 里设置 IMAGE=ghcr.io/用户名/仓库名:latest
-    image: ${IMAGE:-gpt-verify}
+    # GitHub Actions 自动构建的镜像，在 .env 里用 IMAGE 指定
+    image: ${IMAGE:-ghcr.io/weizhixiong123/gpt-verify:latest}
     container_name: gpt-verify
     restart: unless-stopped
     init: true # 让 docker stop 能正常结束 node 进程
@@ -12,7 +12,7 @@ services:
       PORT: 3000
       DB_FILE: /app/data/app.db
     ports:
-      # 只监听本机，由宿主机的 nginx 反代到这里；端口可在 .env 用 HOST_PORT 修改
+      # 只监听本机，由宝塔反向代理到这里；端口可在 .env 用 HOST_PORT 修改
       - "127.0.0.1:${HOST_PORT:-3000}:3000"
     volumes:
       - data:/app/data
