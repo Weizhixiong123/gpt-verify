@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
+<title>手机号验证 - GPT 速充</title>
+<link rel="icon" type="image/svg+xml" href="__BASE__/logo.svg">
+<link rel="stylesheet" href="__BASE__/theme.css">
+<style>
+  :root { --logo: url('__BASE__/logo.svg'); }
+  main.container, .topnav .container { max-width: 640px; }
+
+  .page-title { text-align: center; padding: 48px 0 32px; }
+  .page-title h1 { font-size: 40px; font-weight: 300; line-height: 1.2; margin: 0 0 10px; letter-spacing: -.02em; }
+  .page-title p { margin: 0; color: var(--text-2); font-size: 16px; }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); padding: 32px; }
+  .label { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 14px; font-weight: 500; color: var(--text-2); }
+
+  #cdk { font: 500 18px/1.4 var(--mono); letter-spacing: 1px; text-transform: uppercase; padding: 14px 16px; }
+  #cdk::placeholder { letter-spacing: 1px; color: var(--muted); }
+  .panel .primary { margin-top: 16px; padding: 13px; font-size: 16px; }
+
+  /* 号码 / 验证码：DIN 数字，像电表读数 */
+  .reading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-radius: 14px; background: var(--soft); }
+  .reading .v { font-family: var(--num); font-variant-numeric: tabular-nums lining-nums; font-weight: 500; letter-spacing: -.01em; word-break: break-all; line-height: 1.1; }
+  .reading.phone { justify-content: flex-start; gap: 0; padding: 14px 20px; }
+  .reading.phone small { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .reading.phone .dial { flex: none; padding-right: 18px; margin-right: 18px; border-right: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+  .reading.phone .dial span { font: 500 26px/1.1 var(--num); color: var(--text-2); }
+  .reading.phone .num-box { flex: 1; min-width: 0; }
+  .reading.phone .v { font-size: 34px; }
+  .reading.phone button { margin-left: 12px; }
+  .reading.code .v { font-size: 56px; letter-spacing: .08em; }
+  .reading button { flex: none; }
+
+  .meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .meta b { color: var(--text); font-weight: 600; font-family: var(--num); font-size: 15px; }
+
+  .todo { list-style: none; counter-reset: s; margin: 24px 0 0; padding: 20px 0 0; border-top: 1px solid var(--line); }
+  .todo li { counter-increment: s; display: flex; gap: 14px; padding: 5px 0; color: var(--text-2); }
+  .todo li::before { content: counter(s); font: 500 16px/1.5 var(--num); color: var(--muted); width: 12px; flex: none; }
+  .todo b { color: var(--text); font-weight: 600; }
+
+  .waiting { display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 12px 16px; border-radius: 12px; font-size: 14px;
+             background: color-mix(in srgb, var(--info) 8%, transparent); color: var(--text-2); }
+  .waiting b { font-family: var(--num); color: var(--text); font-weight: 500; }
+  .waiting .spinner { width: 16px; height: 16px; border-top-color: var(--info); }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .acts button { padding: 11px 12px; font-size: 14px; }
+
+  .done-head { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 16px; font-weight: 600; }
+  .done-head svg { width: 22px; height: 22px; color: var(--accent); }
+  .sms { margin: 14px 0 0; color: var(--text-2); font-size: 14px; }
+  .tip { margin: 20px 0 0; padding: 12px 16px; border-radius: 12px; background: var(--soft); color: var(--text-2); font-size: 13px; }
+
+  .replaced { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; font-size: 13px; background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--text); }
+  .route { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 14px; margin: 0 0 18px; }
+  .route > div { padding: 12px 16px; }
+  .route > div + div { border-left: 1px solid var(--line); }
+  .route span { display: block; font-size: 12px; color: var(--muted); }
+  .route b { display: block; margin-top: 2px; font-size: 18px; font-weight: 600; }
+  #p-rate { font-family: var(--num); color: var(--accent); }
+
+  /* 线路排名：卡片底部的一条浅底色带，像仪表读数 */
+  .panel { overflow: hidden; }
+  .rank { margin: 28px -32px -32px; padding: 20px 32px 22px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--soft) 55%, var(--card)); }
+  .rank-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .rank-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  .rank-head span { font-size: 12px; color: var(--muted); }
+  .rank-grid { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 24px; row-gap: 16px; }
+  .rank-grid li { min-width: 0; }
+  .rank-grid .top { display: flex; align-items: baseline; gap: 8px; font-size: 14px; color: var(--text-2); }
+  .rank-grid .n { font: 500 13px var(--num); color: var(--muted); }
+  .rank-grid .you { margin-left: auto; font-size: 11px; color: var(--accent); }
+  .rank-grid .p { display: block; margin-top: 2px; font: 500 28px/1.1 var(--num); font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: var(--text); }
+  .rank-grid .bar { display: block; margin-top: 8px; height: 3px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .rank-grid .bar i { display: block; height: 100%; border-radius: 99px; background: var(--text-2); }
+  .rank-grid li:first-child .bar i { background: var(--accent); }
+  /* 用户当前号码所在的国家 */
+  .rank-grid li.on .top { color: var(--text); font-weight: 600; }
+  .rank-grid li.on .p { color: var(--accent); }
+  .rank-grid li.on .bar i { background: var(--accent); }
+  .rank-desc { margin: 16px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+  .rank-desc b { color: var(--text-2); font-weight: 600; }
+  .state-msg { margin: 0 0 4px; font-size: 16px; font-weight: 500; }
+  .formerr { margin: 14px 0 0; text-align: center; }
+  .reset { display: block; margin: 16px auto 0; background: none; border: 0; padding: 4px 8px; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+  .reset:hover { background: none; color: var(--text); }
+
+  /* 流程：细线分隔的横排 */
+  .steps4 { display: grid; grid-template-columns: repeat(4, 1fr); margin: 48px 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .steps4 .s { display: flex; gap: 12px; padding: 20px 14px 20px 0; }
+  .steps4 .s + .s { padding-left: 14px; border-left: 1px solid var(--line); }
+  .steps4 .n { font: 500 22px/1.2 var(--num); color: var(--muted); }
+  .steps4 b { display: block; font-size: 14px; font-weight: 600; }
+  .steps4 span { display: block; color: var(--text-2); font-size: 12px; margin-top: 2px; }
+
+  /* 常见问题：只用横线分隔 */
+  .faq-sec { margin: 72px 0 0; }
+  .faq-sec h2 { font-size: 28px; font-weight: 300; line-height: 1.2; margin: 0 0 20px; letter-spacing: -.02em; }
+  .faq { border-top: 1px solid var(--text); border-radius: 2px; }
+  .faq details { border-bottom: 1px solid var(--line); }
+  .faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 2px; font-size: 16px; font-weight: 500; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: ""; flex: none; width: 8px; height: 8px; border: solid var(--text-2); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(-2px, -2px); transition: transform .2s; }
+  .faq details[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+  .faq p { margin: 0; padding: 0 32px 20px 2px; color: var(--text-2); font-size: 15px; line-height: 1.75; }
+
+  footer.container { max-width: 640px; }
+  .foot { margin: 72px 0 0; border-top: 1px solid var(--line); text-align: left; }
+
+  @media (max-width: 600px) {
+    .page-title { padding: 28px 0 22px; }
+    .page-title h1 { font-size: 30px; }
+    .page-title p { font-size: 15px; }
+    .panel { padding: 22px 18px; border-radius: 18px; }
+    .rank { margin: 24px -18px -22px; padding: 18px 18px 20px; }
+    .rank-grid { column-gap: 14px; }
+    .rank-grid .p { font-size: 24px; }
+    .rank-grid .you { display: none; }
+    .reading { padding: 14px 16px; }
+    .reading.phone { padding: 12px 14px; }
+    .reading.phone .dial { padding-right: 12px; margin-right: 12px; }
+    .reading.phone .dial span { font-size: 20px; }
+    .reading.phone .v { font-size: 24px; }
+    .reading.code .v { font-size: 44px; }
+    .steps4 { grid-template-columns: 1fr 1fr; }
+    .steps4 .s { padding: 16px 10px 16px 0; }
+    .steps4 .s + .s { padding-left: 0; border-left: 0; }
+    .steps4 .s:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--line); }
+    .steps4 .s:nth-child(n + 3) { border-top: 1px solid var(--line); }
+    .faq-sec { margin-top: 56px; }
+    .faq-sec h2 { font-size: 24px; }
+    .foot { margin-top: 56px; }
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<header class="topnav" id="topnav">
+  <div class="container">
+    <a class="logo" href="__BASE__" aria-label="GPT 速充 手机验证"><span class="brand-icon" aria-hidden="true"></span><span>GPT 速充</span></a>
+  </div>
+</header>
+
+<main class="container">
+  <section class="page-title rise">
+    <h1>手机号验证</h1>
+    <p>输入 CDK 获取手机号，验证码会自动显示在本页</p>
+  </section>
+
+  <div class="rise-2">
+    <section class="panel">
+      <!-- 1. 输入 CDK -->
+      <form id="v-input">
+        <label class="label" for="cdk">CDK</label>
+        <input id="cdk" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="40" required>
+        <button type="submit" class="primary block" id="b-redeem">获取手机号</button>
+      </form>
+
+      <!-- 2. 号码已就绪，等待验证码 -->
+      <div id="v-phone" hidden>
+        <p class="replaced" id="p-replaced" hidden>原号码已被平台回收，已自动更换新号码（不占用换号次数）。如果已在 ChatGPT 填过旧号码，请改填下面的新号码。</p>
+        <div class="route">
+          <div><span>号码国家</span><b id="p-country"></b></div>
+          <div id="p-rate-box"><span>接码成功率</span><b id="p-rate"></b></div>
+        </div>
+        <div class="reading phone">
+          <span class="dial" id="p-dial-box"><small>区号</small><span id="p-dial"></span></span>
+          <span class="num-box"><small>号码</small><span class="v" id="p-phone"></span></span>
+          <button class="ghost sm" data-copy="p-phone">复制号码</button>
+        </div>
+        <div class="meta"><span>还可换号 <b id="p-left"></b> 次</span><span>号码有效期 <b id="p-expire"></b></span></div>
+        <ol class="todo">
+          <li><span>回到 ChatGPT，国家选择 <b id="p-country2"></b>，粘贴号码（不含区号）</span></li>
+          <li><span>点击 <b>发送验证码</b></span></li>
+          <li><span>停留在本页，验证码到达后会自动显示</span></li>
+        </ol>
+        <div class="waiting"><span class="spinner"></span><span>等待验证码中，已等待 <b id="p-elapsed">0:00</b></span></div>
+        <div class="acts">
+          <button class="ghost" id="b-swap">没收到码，换号</button>
+          <button class="ghost" id="b-reject">号码被拒，换号</button>
+        </div>
+      </div>
+
+      <!-- 3. 收到验证码 -->
+      <div id="v-done" hidden>
+        <p class="done-head">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8.2" stroke="currentColor" stroke-width="1.6"/><path d="M6.2 10.3l2.6 2.6 5-5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          验证码已收到
+        </p>
+        <div class="reading code"><span class="v" id="d-code"></span><button class="ghost sm" data-copy="d-code">复制</button></div>
+        <p class="sms" id="d-text"></p>
+        <div class="meta"><span>手机号 <span class="mono" id="d-phone"></span></span></div>
+        <p class="tip">此 CDK 已使用完毕。号码有效期内如果重新发送验证码，新的验证码也会显示在这里。</p>
+      </div>
+
+      <!-- 4. 号码失效，可重新取号 -->
+      <div id="v-renew" hidden>
+        <p class="state-msg" id="r-reason"></p>
+        <p class="muted" style="margin:0">还可换号 <b id="r-left"></b> 次</p>
+        <button class="primary block" id="b-new">获取新号码</button>
+      </div>
+
+      <!-- 5. 次数用完 / 已停用 -->
+      <div id="v-stop" hidden>
+        <p class="state-msg" id="s-text" style="margin:0"></p>
+      </div>
+
+      <!-- 线路排名：嵌在卡片底部，和上面的操作区是一个整体 -->
+      <div class="rank" id="rates" hidden>
+        <div class="rank-head"><h2>线路排名</h2><span id="rates-time"></span></div>
+        <ol class="rank-grid" id="rate-list"></ol>
+        <p class="rank-desc">百分比是<b>接码成功率</b>：该国家号码最近收到 ChatGPT 验证码的比例，每 10 分钟更新。取号时自动分配第 1 名，没收到验证码换号时依次换到下一名。</p>
+      </div>
+    </section>
+
+    <p class="err formerr" id="err" hidden></p>
+    <button class="reset" id="b-reset" hidden>使用其他 CDK</button>
+
+    <section class="steps4" aria-label="验证流程">
+      <div class="s"><div class="n">1</div><div><b>输入 CDK</b><span>闲鱼发货的卡密</span></div></div>
+      <div class="s"><div class="n">2</div><div><b>填写号码</b><span>在 ChatGPT 选好国家</span></div></div>
+      <div class="s"><div class="n">3</div><div><b>发送验证码</b><span>点击后回到本页</span></div></div>
+      <div class="s"><div class="n">4</div><div><b>自动显示</b><span>通常几十秒内到达</span></div></div>
+    </section>
+
+    <section class="faq-sec">
+      <h2>常见问题</h2>
+      <div class="faq">
+        <details><summary>接码成功率是什么意思？</summary><p>指某个国家的号码最近一段时间内成功收到 ChatGPT 验证码的比例，根据真实接码数据统计，每 10 分钟更新。成功率不是 100%，是因为部分号码会被 ChatGPT 拒绝或迟迟收不到短信；遇到这种情况点换号即可，系统会换到其他国家，CDK 不会作废。</p></details>
+        <details><summary>一直收不到验证码怎么办？</summary><p>先确认 ChatGPT 里选择的国家和号码一致，并且已经点了「发送验证码」。等待 2 分钟仍未收到，点「没收到码，换号」，系统会换一条其他线路的号码。</p></details>
+        <details><summary>ChatGPT 提示号码无法使用？</summary><p>点「号码被拒，换号」，不用等待，立即更换新号码。</p></details>
+        <details><summary>换号有次数限制吗？</summary><p>每个 CDK 可以换号多次，剩余次数显示在号码下方。次数用完仍未成功，请联系客服处理。</p></details>
+        <details><summary>CDK 什么时候作废？</summary><p>只有成功收到验证码后才会作废。号码超时、换号都不会让 CDK 失效。</p></details>
+        <details><summary>不小心关掉了页面？</summary><p>在同一个浏览器重新打开本页会自动恢复；换了设备就重新输入 CDK，会显示原来的号码和验证码。</p></details>
+        <details><summary>这是 OpenAI 官方的服务吗？</summary><p>不是。GPT 速充是第三方服务，与 OpenAI 没有关联。</p></details>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="container"><p class="foot">本站为第三方服务，与 OpenAI 无关</p></footer>
+
+<script>
+const BASE = '__BASE__';
+const $ = (id) => document.getElementById(id);
+const views = ['v-input', 'v-phone', 'v-done', 'v-renew', 'v-stop'];
+let state = null, cdk = null, es = null, skew = 0, busy = false, current = null;
+
+function show(view) {
+  if (view !== current) {
+    views.forEach((v) => ($(v).hidden = v !== view));
+    $(view).classList.remove('fade-in'); void $(view).offsetWidth; $(view).classList.add('fade-in');
+    current = view;
+  }
+  $('b-reset').hidden = view === 'v-input';
+}
+function error(msg) { $('err').textContent = msg || ''; $('err').hidden = !msg; }
+function store(v) { try { v ? localStorage.setItem('cdk', v) : localStorage.removeItem('cdk'); } catch {} }
+function stored() { try { return localStorage.getItem('cdk'); } catch { return null; } }
+const now = () => Date.now() + skew;
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+async function post(path, body) {
+  const res = await fetch(BASE + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({ error: '网络错误，请重试' }));
+  if (!res.ok) throw Object.assign(new Error(data.error || '请求失败'), { code: data.code });
+  return data;
+}
+
+async function act(btn, fn) {
+  if (busy) return;
+  busy = true; error('');
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>请稍候';
+  try { render(await fn()); }
+  catch (e) {
+    error(e.message);
+    if (e.code === 'NOT_FOUND' || e.code === 'DISABLED') {
+      // 这个 CDK 用不了：不再记住它，选中输入框方便直接粘贴新的
+      store(null); cdk = null;
+      if (es) { es.close(); es = null; }
+      history.replaceState(null, '', location.pathname);
+      error(`${e.message}。如有其他 CDK，直接在上方重新输入即可。`);
+      $('cdk').focus(); $('cdk').select();
+    }
+  }
+  finally { busy = false; btn.innerHTML = label; btn.disabled = false; tick(); }
+}
+
+function render(s) {
+  if (!s) return;
+  state = s; skew = s.now - Date.now();
+  drawRates();
+  if (cdk !== s.cdk) { cdk = s.cdk; store(cdk); listen(); }
+  const o = s.order;
+
+  if (s.status === 'disabled') { $('s-text').textContent = `此 CDK 已停用，${s.support}`; return show('v-stop'); }
+  if (s.status === 'used' && o && o.code) {
+    $('d-code').textContent = o.code;
+    $('d-text').textContent = o.smsText || '';
+    $('d-phone').textContent = o.dialCode ? `${o.dialCode} ${o.local}` : o.phone;
+    return show('v-done');
+  }
+  if (o && o.status === 'pending') {
+    // 区号和号码分开显示；「复制号码」只复制不含区号的部分，ChatGPT 里区号由所选国家决定
+    $('p-dial-box').hidden = !o.dialCode;
+    $('p-dial').textContent = o.dialCode || '';
+    $('p-phone').textContent = o.dialCode ? o.local : o.phone;
+    $('p-country').textContent = o.countryName || '—';
+    $('p-rate-box').hidden = o.successRate == null;
+    $('p-rate').textContent = `约 ${o.successRate}%`;
+    $('p-country2').textContent = (o.countryName || '号码对应国家') + (o.dialCode ? `（${o.dialCode}）` : '');
+    $('p-left').textContent = Math.max(0, s.numbersLeft);
+    $('p-replaced').hidden = !s.replaced;
+    show('v-phone');
+    return tick();
+  }
+  if (s.numbersLeft > 0) {
+    $('r-reason').textContent = !o ? '准备获取号码'
+      : o.status === 'timeout' ? '上一个号码已超时，请获取新号码'
+      : o.status === 'released' ? '号码已被平台回收（不占用换号次数），请获取新号码'
+      : '请获取新号码';
+    $('r-left').textContent = s.numbersLeft;
+    return show('v-renew');
+  }
+  $('s-text').textContent = `换号次数已用完，${s.support}，并提供你的 CDK。`;
+  show('v-stop');
+}
+
+// 每秒刷新计时和换号按钮
+function tick() {
+  const o = state && state.order;
+  if (!o || o.status !== 'pending' || current !== 'v-phone') return;
+  const t = now();
+  $('p-elapsed').textContent = mmss(Math.max(0, Math.floor((t - o.createdAt) / 1000)));
+  $('p-expire').textContent = mmss(Math.max(0, Math.floor((o.expiresAt - t) / 1000)));
+  if (busy) return;
+  const noMore = state.numbersLeft <= 0;
+  const wait = Math.ceil((o.swapAt - t) / 1000);
+  $('b-swap').disabled = noMore || wait > 0;
+  $('b-swap').textContent = noMore ? '换号次数已用完' : wait > 0 ? `${wait}s 后可换号` : '没收到码，换号';
+  $('b-reject').disabled = noMore;
+}
+setInterval(tick, 1000);
+
+// 服务端推送：验证码一到立刻显示
+function listen() {
+  if (es) es.close();
+  es = new EventSource(`${BASE}/api/stream?cdk=${encodeURIComponent(cdk)}`);
+  es.onmessage = (e) => { if (!busy) render(JSON.parse(e.data)); };
+}
+
+// 开始输入新的 CDK 时清掉旧的报错
+$('cdk').addEventListener('input', () => error(''));
+
+$('v-input').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = $('cdk').value.trim();
+  if (v) act($('b-redeem'), () => post('/api/redeem', { cdk: v }));
+});
+$('b-swap').onclick = () => act($('b-swap'), () => post('/api/swap', { cdk, reason: 'nocode' }));
+$('b-reject').onclick = () => {
+  if (confirm('确认 ChatGPT 提示此号码无法使用？将更换新号码。')) act($('b-reject'), () => post('/api/swap', { cdk, reason: 'rejected' }));
+};
+$('b-new').onclick = () => act($('b-new'), () => post('/api/number', { cdk }));
+$('b-reset').onclick = () => {
+  if (es) es.close();
+  es = null; cdk = null; state = null; store(null); error('');
+  $('cdk').value = ''; show('v-input');
+  history.replaceState(null, '', location.pathname);
+};
+document.querySelectorAll('[data-copy]').forEach((btn) => {
+  btn.onclick = async () => {
+    const el = $(btn.dataset.copy);
+    try { await navigator.clipboard.writeText(el.textContent); }
+    catch {
+      const r = document.createRange(); r.selectNodeContents(el);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); sel.removeAllRanges();
+    }
+    const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+    btn.textContent = '已复制'; setTimeout(() => (btn.textContent = label), 1500);
+  };
+});
+
+// 实时接码成功率
+let rates = null;
+async function loadRates() {
+  try {
+    rates = await (await fetch(`${BASE}/api/routes`)).json();
+    drawRates();
+  } catch {}
+}
+function drawRates() {
+  if (!rates || !rates.list || !rates.list.length) return;
+  const o = state && state.order;
+  const mine = o && (o.status === 'pending' || o.code) ? o.countryName : null;
+  $('rate-list').innerHTML = rates.list.map((r, i) => `<li class="${r.name === mine ? 'on' : ''}">
+    <span class="top"><span class="n">${i + 1}</span>${r.name}${r.name === mine ? '<span class="you">你的号码</span>' : ''}</span>
+    <b class="p">${r.rate}%</b><span class="bar"><i style="width:${r.rate}%"></i></span></li>`).join('');
+  $('rates-time').textContent = rates.updatedAt ? `更新于 ${new Date(rates.updatedAt).toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })}` : '';
+  $('rates').hidden = false;
+}
+loadRates();
+setInterval(loadRates, 5 * 60e3);
+
+// 导航滚动后变磨砂
+const nav = $('topnav');
+addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+// 链接带 ?cdk= 或之前用过，自动恢复
+current = 'v-input';
+const initial = new URLSearchParams(location.search).get('cdk') || stored();
+if (initial) { $('cdk').value = initial; $('v-input').requestSubmit(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+services:
+  gpt-verify:
+    # GitHub Actions 自动构建的镜像，在 .env 里设置 IMAGE=ghcr.io/用户名/仓库名:latest
+    image: ${IMAGE:-gpt-verify}
+    container_name: gpt-verify
+    restart: unless-stopped
+    init: true # 让 docker stop 能正常结束 node 进程
+    env_file: .env
+    environment:
+      # 以下几项在容器里固定，覆盖 .env 中的同名配置
+      HOST: 0.0.0.0
+      PORT: 3000
+      DB_FILE: /app/data/app.db
+    ports:
+      # 只监听本机，由宿主机的 nginx 反代到这里；端口可在 .env 用 HOST_PORT 修改
+      - "127.0.0.1:${HOST_PORT:-3000}:3000"
+    volumes:
+      - data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/sms/api/routes').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  data:

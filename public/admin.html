@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
+<title>接码后台 - GPT 速充</title>
+<link rel="icon" type="image/svg+xml" href="__BASE__/logo.svg">
+<link rel="stylesheet" href="__BASE__/theme.css">
+<style>
+  :root { --logo: url('__BASE__/logo.svg'); --side: 232px; }
+
+  /* ---------- 登录 ---------- */
+  .login { position: relative; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+  .login-box { width: min(380px, 100%); }
+  .login-box .logo { margin-bottom: 36px; }
+  .login-box h1 { font-size: 32px; font-weight: 300; margin: 0 0 6px; letter-spacing: -.02em; }
+  .login-box .card { padding: 24px; border-radius: 20px; box-shadow: var(--shadow); margin-top: 20px; }
+  .login-box button { margin-top: 14px; }
+
+  /* ---------- 外框：左侧边栏 + 右侧内容 ---------- */
+  .shell { display: grid; grid-template-columns: var(--side) 1fr; min-height: 100vh; }
+  .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; padding: 20px 14px; border-right: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 70%, var(--card)); }
+  .side .logo { padding: 4px 10px 22px; font-size: 18px; }
+  .side .logo small { font-size: 12px; font-weight: 500; color: var(--muted); padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; }
+  .menu { display: flex; flex-direction: column; gap: 2px; }
+  .menu a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: var(--text-2); text-decoration: none; font-size: 14px; font-weight: 500; transition: background .15s, color .15s; }
+  .menu a svg { width: 18px; height: 18px; flex: none; }
+  .menu a:hover { background: var(--soft); color: var(--text); }
+  .menu a.active { background: var(--card); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
+  .menu a .cnt { margin-left: auto; font: 500 12px var(--num); color: var(--muted); }
+  .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  .bal { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .bal span { display: block; font-size: 12px; color: var(--muted); }
+  .bal b { display: block; margin-top: 2px; font: 500 26px/1.1 var(--num); letter-spacing: -.01em; }
+  .bal .badge { margin-top: 8px; }
+  .side-links { display: flex; justify-content: space-between; padding: 0 4px; }
+  .side-links a, .side-links button { background: none; border: 0; padding: 4px; color: var(--muted); font-size: 13px; text-decoration: none; cursor: pointer; }
+  .side-links a:hover, .side-links button:hover { color: var(--text); background: none; }
+
+  .content { min-width: 0; position: relative; }
+  .page { padding: 32px 40px 64px; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .page-head h1 { font-size: 30px; font-weight: 300; margin: 0; letter-spacing: -.02em; line-height: 1.2; }
+  .page-head p { margin: 6px 0 0; color: var(--text-2); font-size: 14px; }
+  .page-head .acts { display: flex; gap: 8px; }
+
+  /* ---------- 通用块 ---------- */
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .box-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .box-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+  .box-head a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .box-head a:hover { color: var(--text); }
+  .box table th:first-child, .box table td:first-child { padding-left: 20px; }
+  .box table th:last-child, .box table td:last-child { padding-right: 20px; }
+  .box table tr:last-child td { border-bottom: 0; }
+  .box table tbody tr:hover td { background: var(--soft); }
+  .box .foot-note { margin: 0; padding: 12px 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  .empty { padding: 36px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+  td.num, .num { font-family: var(--num); font-variant-numeric: tabular-nums; }
+  td b.num { font-weight: 600; font-size: 14px; }
+  td a { cursor: pointer; text-decoration: none; border-bottom: 1px solid var(--line); }
+  td a:hover { border-color: var(--text); }
+  .grid2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 16px; }
+
+  /* 指标卡 */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi { padding: 18px 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+  .kpi span { display: block; font-size: 13px; color: var(--text-2); }
+  .kpi b { display: block; margin-top: 8px; font: 500 34px/1 var(--num); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .kpi small { display: block; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .kpi.accent b { color: var(--accent); }
+  .strip { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+  .strip a { display: block; padding: 14px 20px; text-decoration: none; }
+  .strip a + a { border-left: 1px solid var(--line); }
+  .strip a:hover { background: var(--soft); }
+  .strip a:first-child { border-radius: 16px 0 0 16px; }
+  .strip a:last-child { border-radius: 0 16px 16px 0; }
+  .strip span { font-size: 13px; color: var(--text-2); }
+  .strip b { display: block; font: 500 22px var(--num); margin-top: 2px; }
+
+  /* 进行中的号码 */
+  .live { list-style: none; margin: 0; padding: 0; }
+  .live li { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .live li:last-child { border-bottom: 0; }
+  .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--info); flex: none; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .live .m { flex: 1; min-width: 0; }
+  .live .m b { font: 500 15px var(--num); }
+  .live .m span { display: block; font-size: 12px; color: var(--muted); }
+  .live .t { font: 500 14px var(--num); color: var(--text-2); }
+
+  /* 线路迷你排行 */
+  .bars { padding: 6px 20px 14px; }
+  .bars .r { display: grid; grid-template-columns: 72px 1fr 48px; gap: 12px; align-items: center; padding: 8px 0; font-size: 14px; }
+  .bars .bar { height: 6px; border-radius: 99px; background: var(--soft); overflow: hidden; }
+  .bars .bar i { display: block; height: 100%; border-radius: 99px; background: var(--text); opacity: .8; }
+  .bars .r:first-child .bar i { background: var(--accent); opacity: 1; }
+  .bars .p { text-align: right; font: 500 14px var(--num); }
+
+  /* 筛选条 */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tabs button { padding: 5px 12px; font-size: 13px; background: transparent; color: var(--text-2); border-color: var(--line); }
+  .tabs button:hover { background: var(--soft); color: var(--text); }
+  .tabs button.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .toolbar input { width: 220px; padding: 7px 14px; border-radius: 999px; font-size: 13px; }
+
+  /* 设置 */
+  .kv { display: grid; grid-template-columns: 220px 1fr; }
+  .kv > div { padding: 13px 20px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .kv > div:nth-child(odd) { color: var(--text-2); }
+  .kv > div:nth-last-child(-n + 2) { border-bottom: 0; }
+  .kv code { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: 8px; }
+  .settings { display: grid; gap: 16px; }
+
+  /* ---------- 弹窗 ---------- */
+  .dlg { width: min(860px, calc(100vw - 32px)); max-width: none; padding: 0; border: 1px solid var(--line); border-radius: 20px;
+         background: var(--card); color: var(--text); box-shadow: 0 24px 60px rgba(0, 0, 0, .18); }
+  .dlg.narrow { width: min(560px, calc(100vw - 32px)); }
+  .dlg::backdrop { background: rgba(0, 0, 0, .4); }
+  .dlg .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 24px 18px; border-bottom: 1px solid var(--line); }
+  .dlg .top h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .dlg .top h2.mono { font: 500 20px var(--mono); letter-spacing: .02em; }
+  .dlg .top p { margin: 8px 0 0; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; color: var(--text-2); font-size: 13px; }
+  .dlg .close { flex: none; width: 32px; height: 32px; padding: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; }
+  .dlg .close:hover { background: var(--soft); color: var(--text); }
+  .dlg .body { padding: 20px 24px; }
+  .dlg .acts { display: flex; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--line); justify-content: flex-end; align-items: center; }
+  .dlg .acts .muted { margin-right: auto; }
+  .dlg .table-wrap { max-height: 50vh; }
+  .dlg table th:first-child, .dlg table td:first-child { padding-left: 24px; }
+  .field { display: block; margin-bottom: 14px; }
+  .field > span { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--text-2); }
+  .field-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; }
+  #e-out { min-height: 220px; }
+
+  /* ---------- 窄屏：侧边栏变顶栏 ---------- */
+  @media (max-width: 1100px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; }
+    .side { position: sticky; z-index: 20; height: auto; flex-direction: row; align-items: center; gap: 8px; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--line);
+            background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: saturate(180%) blur(14px); }
+    .side .logo { padding: 0 4px; font-size: 0; gap: 0; }
+    .side .logo small, .side-foot { display: none; }
+    .menu { flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+    .menu a { padding: 7px 12px; white-space: nowrap; }
+    .menu a svg, .menu a .cnt { display: none; }
+    .page { padding: 20px 16px 48px; }
+    .page-head h1 { font-size: 26px; }
+    .strip { grid-template-columns: repeat(2, 1fr); }
+    .strip a:nth-child(3) { border-left: 0; }
+    .strip a:nth-child(n + 3) { border-top: 1px solid var(--line); }
+    .strip a { border-radius: 0 !important; }
+    .kv { grid-template-columns: 1fr; }
+    .kv > div:nth-child(odd) { padding-bottom: 0; border-bottom: 0; font-size: 12px; }
+    .toolbar input { width: 100%; }
+  }
+  @media (max-width: 480px) {
+    .kpi b { font-size: 28px; }
+    .field-row { grid-template-columns: 1fr; }
+  }
+  .mobile-bal { display: none; }
+  @media (max-width: 860px) { .mobile-bal { display: block; } }
+</style>
+</head>
+<body>
+
+<!-- ================= 登录 ================= -->
+<section class="login" id="login" hidden>
+  <div class="bg"></div>
+  <div class="login-box rise">
+    <a class="logo" href="__BASE__"><span class="brand-icon" aria-hidden="true"></span><span>GPT 速充</span></a>
+    <h1>接码后台</h1>
+    <p class="muted" style="margin:0">输入 .env 中的 ADMIN_TOKEN</p>
+    <form class="card" id="f-login">
+      <input type="password" id="token" placeholder="管理密码" autocomplete="current-password">
+      <button class="block">进入后台</button>
+      <p class="err" id="login-err" style="margin:10px 0 0"></p>
+    </form>
+  </div>
+</section>
+
+<!-- ================= 后台 ================= -->
+<div class="shell" id="app" hidden>
+  <aside class="side">
+    <a class="logo" href="#overview"><span class="brand-icon" aria-hidden="true"></span><span>GPT 速充&nbsp;</span><small>接码</small></a>
+    <nav class="menu" id="menu">
+      <a href="#overview" data-view="overview">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5"/></svg>概览</a>
+      <a href="#orders" data-view="orders">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="2.5" width="9" height="15" rx="2"/><path d="M9 14.5h2"/></svg>号码记录<span class="cnt" id="cnt-live"></span></a>
+      <a href="#cdks" data-view="cdks">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5V5.5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v2a2.5 2.5 0 0 0 0 5v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a2.5 2.5 0 0 0 0-5z"/><path d="M12 4.5v11" stroke-dasharray="1.6 2"/></svg>CDK<span class="cnt" id="cnt-unused"></span></a>
+      <a href="#routes" data-view="routes">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 16V11M8.5 16V7M13 16V9.5M17 16V4"/></svg>线路</a>
+      <a href="#settings" data-view="settings">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h7M15 6h1M4 14h1M9 14h7"/><circle cx="13" cy="6" r="2"/><circle cx="7" cy="14" r="2"/></svg>设置</a>
+    </nav>
+    <div class="side-foot">
+      <div class="bal"><span>5SIM 余额</span><b id="side-bal">—</b><span id="side-mode"></span></div>
+      <div class="side-links"><a href="__BASE__" target="_blank">前台页面 ↗</a><button id="b-logout" type="button">退出</button></div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="bg"></div>
+
+    <!-- 概览 -->
+    <section class="page" data-page="overview">
+      <div class="page-head rise">
+        <div><h1>概览</h1><p id="ov-sub"></p></div>
+        <div class="acts"><button class="ghost sm" data-reload>刷新</button></div>
+      </div>
+      <div class="rise-2">
+        <div class="kpis" id="kpis"></div>
+        <div class="strip" id="strip"></div>
+        <div class="grid2">
+          <div class="box">
+            <div class="box-head"><h2>等待验证码</h2><a href="#orders" data-filter="pending">全部 →</a></div>
+            <ul class="live" id="live"></ul>
+          </div>
+          <div class="box">
+            <div class="box-head"><h2>首选线路</h2><a href="#routes">线路排行 →</a></div>
+            <div class="bars" id="mini-routes"></div>
+          </div>
+        </div>
+        <div class="box" style="margin-top:16px">
+          <div class="box-head"><h2>最近号码</h2><a href="#orders">号码记录 →</a></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>时间</th><th>CDK</th><th>号码</th><th>国家 / 线路</th><th>单价</th><th>状态</th><th>验证码</th></tr></thead>
+            <tbody id="recent"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 号码记录 -->
+    <section class="page" data-page="orders" hidden>
+      <div class="page-head rise">
+        <div><h1>号码记录</h1><p>所有 CDK 取过的号码，最近 200 条</p></div>
+        <div class="acts"><button class="ghost sm" data-reload>刷新</button></div>
+      </div>
+      <div class="box rise-2">
+        <div class="toolbar">
+          <div class="tabs" id="o-tabs">
+            <button class="active" data-s="">全部</button>
+            <button data-s="pending">等待中</button>
+            <button data-s="received">已收码</button>
+            <button data-s="finished">已结束</button>
+            <button data-s="canceled">用户换号</button>
+            <button data-s="banned">号码被拒</button>
+            <button data-s="timeout">超时</button>
+            <button data-s="released">平台回收</button>
+          </div>
+          <input id="o-q" type="search" placeholder="搜索 CDK / 号码">
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>时间</th><th>CDK</th><th>号码</th><th>国家 / 线路</th><th>预估成功率</th><th>单价</th><th>状态</th><th>验证码</th></tr></thead>
+          <tbody id="o-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- CDK -->
+    <section class="page" data-page="cdks" hidden>
+      <div class="page-head rise">
+        <div><h1>CDK</h1><p>点击 CDK 查看取号记录、补换号次数或停用</p></div>
+        <div class="acts"><button class="ghost sm" data-reload>刷新</button><button class="ghost sm" id="b-export">导出未使用</button><button class="sm" id="b-gen">生成 CDK</button></div>
+      </div>
+      <div class="box rise-2">
+        <div class="toolbar">
+          <div class="tabs" id="c-tabs">
+            <button class="active" data-s="">全部</button>
+            <button data-s="unused">未使用</button>
+            <button data-s="active">进行中</button>
+            <button data-s="used">已完成</button>
+            <button data-s="disabled">已停用</button>
+          </div>
+          <input id="c-q" type="search" placeholder="搜索 CDK / 批次">
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>CDK</th><th>状态</th><th>当前号码</th><th>取号次数</th><th>额外次数</th><th>批次</th><th>创建时间</th><th>完成时间</th></tr></thead>
+          <tbody id="c-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 线路 -->
+    <section class="page" data-page="routes" hidden>
+      <div class="page-head rise">
+        <div><h1>线路排行</h1><p id="rt-sub"></p></div>
+        <div class="acts"><button class="ghost sm" data-reload>刷新</button></div>
+      </div>
+      <div class="box rise-2">
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>国家</th><th>运营商</th><th>单价</th><th>库存</th><th>综合得分</th><th>5SIM 24h / 7天 / 30天</th><th>本站 成功/总数</th><th>状态</th></tr></thead>
+          <tbody id="rt-body"></tbody>
+        </table></div>
+        <p class="foot-note">综合得分 = 5SIM 分时成功率（24h×0.5 + 7天×0.3 + 30天×0.2）与本站实际成功率加权，本站样本越多权重越大。用户第 1 次取号从价格上限内得分最高的线路开始；换号时跳过该用户失败过的线路；试错超过设定次数后放宽价格上限。</p>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="page" data-page="settings" hidden>
+      <div class="page-head rise">
+        <div><h1>设置</h1><p>当前生效的配置。修改请编辑服务器上的 .env 文件，然后重启服务</p></div>
+      </div>
+      <div class="settings rise-2" id="settings"></div>
+    </section>
+  </div>
+</div>
+
+<!-- CDK 详情 -->
+<dialog class="dlg" id="dlg">
+  <div class="top">
+    <div><h2 class="mono" id="dt-code"></h2><p id="dt-info"></p></div>
+    <button class="close" type="button" data-close aria-label="关闭">×</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>5SIM 订单</th><th>号码</th><th>国家 / 线路</th><th>单价</th><th>状态</th><th>验证码</th><th>时间</th></tr></thead>
+    <tbody id="dt-body"></tbody>
+  </table></div>
+  <div class="acts">
+    <a class="muted" id="dt-link" target="_blank">打开用户页面 ↗</a>
+    <button class="ghost sm" id="b-extra">+1 换号次数</button>
+    <button class="ghost sm" id="b-toggle"></button>
+  </div>
+</dialog>
+
+<!-- 生成 CDK -->
+<dialog class="dlg narrow" id="gen">
+  <div class="top">
+    <div><h2>生成 CDK</h2><p>生成后会自动打开导出窗口，复制去卡券库存</p></div>
+    <button class="close" type="button" data-close aria-label="关闭">×</button>
+  </div>
+  <form class="body" id="f-gen">
+    <div class="field-row">
+      <label class="field"><span>数量</span><input type="number" id="g-count" value="50" min="1" max="1000"></label>
+      <label class="field"><span>批次备注（可选）</span><input id="g-batch" placeholder="例如：10月第一批"></label>
+    </div>
+  </form>
+  <div class="acts">
+    <button class="sm" id="b-do-gen" type="button">生成</button>
+  </div>
+</dialog>
+
+<!-- 导出未使用 CDK -->
+<dialog class="dlg narrow" id="exp">
+  <div class="top">
+    <div><h2>导出未使用 CDK</h2><p>每行一个，直接粘贴到 xianyu-auto-reply 卡券的「批量数据」</p></div>
+    <button class="close" type="button" data-close aria-label="关闭">×</button>
+  </div>
+  <div class="body">
+    <div class="field-row" style="grid-template-columns: 1fr 1fr">
+      <label class="field"><span>范围</span>
+        <select id="e-scope">
+          <option value="new" id="e-opt-new">还没导出过的</option>
+          <option value="all" id="e-opt-all">全部未使用</option>
+        </select>
+      </label>
+      <label class="field"><span>格式</span>
+        <select id="e-format">
+          <option value="code">仅 CDK（推荐）</option>
+          <option value="link">CDK + 使用链接</option>
+        </select>
+      </label>
+    </div>
+    <p class="muted" id="e-hint" style="margin:-4px 0 14px">默认只导出还没导出过的，避免同一个 CDK 重复贴进卡券库存、发给两个买家。</p>
+    <div id="e-wrap" hidden><textarea id="e-out" readonly wrap="off"></textarea></div>
+  </div>
+  <div class="acts">
+    <span class="muted" id="e-msg"></span>
+    <button class="ghost sm" id="b-e-copy" type="button" hidden>复制全部</button>
+    <button class="sm" id="b-do-exp" type="button">导出</button>
+  </div>
+</dialog>
+
+<script>
+const BASE = '__BASE__';
+const $ = (id) => document.getElementById(id);
+const STATUS = { unused: '未使用', active: '进行中', used: '已完成', disabled: '已停用',
+  pending: '等待中', received: '已收码', finished: '已结束', canceled: '用户换号', banned: '号码被拒', timeout: '超时', released: '平台回收' };
+const TONE = { used: 'ok', received: 'ok', finished: 'ok', active: 'info', pending: 'info', disabled: 'bad', banned: 'bad', timeout: 'warn', released: 'warn' };
+const VIEWS = ['overview', 'orders', 'cdks', 'routes', 'settings'];
+let token = '';
+let overview = null;
+let current = null;
+let view = 'overview';
+const filters = { orders: '', cdks: '' };
+try { token = sessionStorage.getItem('admin-token') || ''; } catch {}
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const time = (ms) => (ms ? new Date(ms).toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
+const tag = (s) => `<span class="badge ${TONE[s] || ''}">${esc(STATUS[s] || s)}</span>`;
+const pct = (v) => (typeof v === 'number' ? v.toFixed(1) : '-');
+const money = (v) => (Math.round((v || 0) * 100) / 100).toString();
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const empty = (cols, text) => `<tr><td colspan="${cols}" class="empty">${text}</td></tr>`;
+
+async function api(path, body) {
+  const res = await fetch(`${BASE}/api/admin/${path}`, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'x-admin-token': token, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { logout(data.error); throw new Error(data.error); }
+  if (!res.ok) throw new Error(data.error || '请求失败');
+  return data;
+}
+const fail = (e) => alert(e.message);
+
+function logout(msg) {
+  try { sessionStorage.removeItem('admin-token'); } catch {}
+  token = '';
+  $('app').hidden = true; $('login').hidden = false; $('login-err').textContent = msg || '';
+}
+
+// ---------- 订单行（概览「最近号码」和号码记录共用）----------
+function orderRow(o, withRate) {
+  return `<tr>
+    <td class="num">${time(o.created_at)}</td>
+    <td class="mono"><a data-code="${esc(o.cdk)}">${esc(o.cdk)}</a></td>
+    <td class="mono">${esc(o.phone)}</td>
+    <td>${esc(o.country_name)} <span class="muted mono">${esc(o.operator || '')}</span></td>
+    ${withRate ? `<td class="num">${o.est_rate != null ? Math.round(o.est_rate) + '%' : '-'}</td>` : ''}
+    <td class="num">${o.price ?? ''}</td>
+    <td>${tag(o.status)}</td>
+    <td class="mono" title="${esc(o.sms_text)}"><b>${esc(o.code || '')}</b></td>
+  </tr>`;
+}
+
+// ---------- 概览 ----------
+async function loadOverview() {
+  overview = await api('overview');
+  const { counts: c, today: t, week: w } = overview;
+  const rate = (s) => { const done = (s.ok || 0) + (s.fail || 0); return done ? Math.round((s.ok / done) * 100) + '%' : '—'; };
+
+  $('side-bal').textContent = overview.balance ?? '—';
+  $('side-mode').innerHTML = overview.mock ? '<span class="badge warn">模拟模式</span>' : overview.balanceError ? '<span class="badge bad">余额获取失败</span>' : '';
+  $('cnt-unused').textContent = c.unused || '';
+  $('cnt-live').textContent = t.pending || '';
+
+  $('ov-sub').innerHTML = overview.mock ? '<span class="badge warn">模拟模式 FIVESIM_MOCK=1，不会真实买号</span>'
+    : overview.balanceError ? `<span class="err">5SIM 余额获取失败：${esc(overview.balanceError)}</span>`
+    : `今天 ${new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}`;
+
+  $('kpis').innerHTML = [
+    ['今日取号', t.total || 0, `近 7 天 ${w.total || 0}`],
+    ['今日成功收码', t.ok || 0, `近 7 天 ${w.ok || 0}`, 'accent'],
+    ['今日接码成功率', rate(t), `近 7 天 ${rate(w)}`],
+    ['今日花费', money(t.spend), `近 7 天 ${money(w.spend)}　余额 ${overview.balance ?? '—'}`],
+  ].map(([k, v, s, cls]) => `<div class="kpi ${cls || ''}"><span>${k}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('');
+
+  $('strip').innerHTML = [['unused', '未使用 CDK'], ['active', '进行中'], ['used', '已完成'], ['disabled', '已停用']]
+    .map(([k, label]) => `<a href="#cdks" data-filter="${k}"><span>${label}</span><b>${c[k] || 0}</b></a>`).join('');
+}
+
+async function loadOverviewLists() {
+  const [{ items: pending }, { items: recent }, rt] = await Promise.all([api('orders?status=pending&limit=20'), api('orders?limit=10'), api('routes')]);
+  const now = Date.now();
+  $('live').innerHTML = pending.map((o) => `<li><span class="dot"></span>
+    <div class="m"><b>${esc(o.phone)}</b><span>${esc(o.country_name)} · <a data-code="${esc(o.cdk)}" class="mono" style="cursor:pointer">${esc(o.cdk)}</a></span></div>
+    <span class="t">${mmss(Math.max(0, Math.floor((now - o.created_at) / 1000)))}</span></li>`).join('')
+    || '<li class="empty" style="display:block">目前没有等待中的号码</li>';
+  $('recent').innerHTML = recent.map((o) => orderRow(o, false)).join('') || empty(7, '还没有取号记录');
+  const top = rt.routes.filter((r) => !r.paused && r.cost <= rt.priceCap).slice(0, 5);
+  const max = Math.max(...top.map((r) => r.score), 1);
+  $('mini-routes').innerHTML = top.map((r) => `<div class="r"><span>${esc(r.name)}</span><span class="bar"><i style="width:${(r.score / max) * 100}%"></i></span><span class="p">${Math.round(r.score)}%</span></div>`).join('')
+    || '<p class="empty">暂无线路数据</p>';
+}
+
+// ---------- 号码记录 ----------
+async function loadOrders() {
+  const qs = new URLSearchParams({ status: filters.orders, q: $('o-q').value.trim(), limit: 200 });
+  const { items } = await api(`orders?${qs}`);
+  $('o-body').innerHTML = items.map((o) => orderRow(o, true)).join('') || empty(8, '没有记录');
+}
+
+// ---------- CDK ----------
+async function loadCdks() {
+  const qs = new URLSearchParams({ q: $('c-q').value.trim(), status: filters.cdks, limit: 200 });
+  const { items } = await api(`cdks?${qs}`);
+  $('c-body').innerHTML = items.map((r) => `<tr>
+    <td class="mono"><a data-code="${esc(r.code)}">${esc(r.code)}</a></td><td>${tag(r.status)}${r.status === 'unused' && r.exported_at ? ' <span class="muted">已导出</span>' : ''}</td><td>${r.last_status ? tag(r.last_status) : ''}</td>
+    <td class="num">${r.order_count}</td><td class="num">${r.extra_swaps || ''}</td><td>${esc(r.batch || '')}</td>
+    <td class="num">${time(r.created_at)}</td><td class="num">${time(r.used_at)}</td></tr>`).join('') || empty(8, '没有记录');
+}
+
+// ---------- 线路 ----------
+async function loadRoutes() {
+  const s = await api('routes');
+  $('rt-sub').innerHTML = (s.updatedAt ? `每 10 分钟从 5SIM 更新，上次 ${time(s.updatedAt)}` : '尚未获取')
+    + `　单价上限：前 ${s.escalateAfter} 次 ${s.priceCap}，之后 ${s.priceCapRetry}`
+    + (s.lastError ? `　<span class="err">刷新失败：${esc(s.lastError)}</span>` : '');
+  $('rt-body').innerHTML = s.routes.map((r, i) => {
+    const tier = r.cost <= s.priceCap ? '' : r.cost <= s.priceCapRetry ? `第 ${s.escalateAfter + 1} 次起` : '超出上限';
+    const status = r.paused ? `<span class="badge bad">熔断至 ${new Date(r.paused).toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })}</span>`
+      : tier ? `<span class="badge">${tier}</span>` : '<span class="badge ok">可用</span>';
+    return `<tr><td class="num">${i + 1}</td><td>${esc(r.name)} <span class="muted">${esc(r.country)}</span></td><td class="mono">${esc(r.operator)}</td><td class="num">${r.cost}</td><td class="num">${r.count}</td>
+      <td><b class="num">${pct(r.score)}%</b></td><td class="num">${pct(r.rate24)} / ${pct(r.rate168)} / ${pct(r.rate720)}</td>
+      <td class="num">${r.ownN ? `${r.ownOk}/${r.ownN}` : '-'}</td><td>${status}</td></tr>`;
+  }).join('') || empty(9, '暂无数据');
+}
+
+// ---------- 设置 ----------
+function renderSettings() {
+  const o = overview, r = o.routing;
+  const group = (title, rows) => `<div class="box"><div class="box-head"><h2>${title}</h2></div><div class="kv">${rows.map(([k, v, env]) =>
+    `<div>${k}</div><div>${esc(v)}${env ? `<code>${env}</code>` : ''}</div>`).join('')}</div></div>`;
+  $('settings').innerHTML = [
+    group('5SIM', [
+      ['运行模式', o.mock ? '模拟（不真实买号）' : '真实', 'FIVESIM_MOCK'],
+      ['账户余额', o.balance ?? (o.balanceError || '—')],
+    ]),
+    group('线路选择', [
+      ['前几次取号的单价上限', `第 1–${r.escalateAfter} 次：${r.priceCap}`, 'PRICE_CAP / ESCALATE_AFTER'],
+      ['之后的单价上限', r.priceCapRetry, 'PRICE_CAP_RETRY'],
+      ['排除国家', r.excludeCountries.join(', ') || '无', 'EXCLUDE_COUNTRIES'],
+      ['最低库存', r.minStock, 'MIN_STOCK'],
+      ['线路刷新间隔', `${r.refreshMin} 分钟`, 'ROUTE_REFRESH_MIN'],
+      ['熔断', `1 小时内连续失败 ${r.breakerFails} 单，暂停 ${r.breakerPauseMin} 分钟`, 'BREAKER_FAILS / BREAKER_PAUSE_MIN'],
+    ]),
+    group('换号规则', [
+      ['每个 CDK 换号次数', `${o.maxSwaps} 次（不含第一次取号）`, 'MAX_SWAPS'],
+      ['取号后多久可换号', `${o.swapCooldownSec} 秒`, 'SWAP_COOLDOWN_SEC'],
+      ['查询验证码间隔', `${o.pollIntervalMs / 1000} 秒`, 'POLL_INTERVAL_MS'],
+    ]),
+    group('前台', [
+      ['对外地址', o.publicUrl || location.origin + BASE, 'PUBLIC_URL'],
+      ['客服联系方式', o.supportContact, 'SUPPORT_CONTACT'],
+    ]),
+  ].join('');
+}
+
+// ---------- CDK 详情 ----------
+async function loadDetail(code) {
+  const { cdk, orders, state } = await api(`cdk?code=${encodeURIComponent(code)}`);
+  current = cdk;
+  $('dt-code').textContent = cdk.code;
+  $('dt-info').innerHTML = `${tag(cdk.status)}<span>还可换号 ${state.numbersLeft} 次</span><span>额外次数 ${cdk.extra_swaps}</span><span>批次 ${esc(cdk.batch || '-')}</span><span>创建于 ${time(cdk.created_at)}</span>`;
+  $('dt-link').href = `${overview?.publicUrl || location.origin + BASE}?cdk=${cdk.code}`;
+  $('b-toggle').textContent = cdk.status === 'disabled' ? '启用' : '停用';
+  $('dt-body').innerHTML = orders.map((o) => `<tr>
+    <td class="mono">${o.fivesim_id}</td><td class="mono">${esc(o.phone)}</td>
+    <td>${esc(o.country_name)} <span class="muted mono">${esc(o.operator || '')}</span>${o.est_rate != null ? ` <span class="muted">${Math.round(o.est_rate)}%</span>` : ''}</td>
+    <td class="num">${o.price ?? ''}</td><td>${tag(o.status)}</td><td class="mono" title="${esc(o.sms_text)}"><b>${esc(o.code || '')}</b></td><td class="num">${time(o.created_at)}</td></tr>`).join('')
+    || empty(7, '还没有取号');
+  if (!$('dlg').open) $('dlg').showModal();
+}
+
+// ---------- 页面切换 ----------
+const loaders = {
+  overview: () => Promise.all([loadOverview(), loadOverviewLists()]),
+  orders: loadOrders,
+  cdks: loadCdks,
+  routes: loadRoutes,
+  settings: async () => { await loadOverview(); renderSettings(); },
+};
+
+function setTab(tabsId, value) {
+  $(tabsId).querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.s === value));
+}
+
+function go() {
+  const name = location.hash.slice(1);
+  view = VIEWS.includes(name) ? name : 'overview';
+  document.querySelectorAll('[data-page]').forEach((p) => (p.hidden = p.dataset.page !== view));
+  document.querySelectorAll('#menu a').forEach((a) => a.classList.toggle('active', a.dataset.view === view));
+  scrollTo(0, 0);
+  loaders[view]().catch(fail);
+}
+addEventListener('hashchange', go);
+
+// 概览上的快捷链接带筛选条件
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[data-filter]');
+  if (!a) return;
+  const target = a.getAttribute('href').slice(1);
+  filters[target] = a.dataset.filter;
+  setTab(target === 'orders' ? 'o-tabs' : 'c-tabs', a.dataset.filter);
+});
+
+// 点击任意 CDK 打开详情
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-code]');
+  if (a) { e.preventDefault(); loadDetail(a.dataset.code).catch(fail); }
+});
+
+document.querySelectorAll('[data-reload]').forEach((b) => (b.onclick = () => loaders[view]().catch(fail)));
+
+for (const [tabsId, key, loader] of [['o-tabs', 'orders', loadOrders], ['c-tabs', 'cdks', loadCdks]]) {
+  $(tabsId).onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    filters[key] = b.dataset.s; setTab(tabsId, b.dataset.s); loader().catch(fail);
+  };
+}
+for (const [inputId, loader] of [['o-q', loadOrders], ['c-q', loadCdks]]) {
+  let timer;
+  $(inputId).oninput = () => { clearTimeout(timer); timer = setTimeout(() => loader().catch(() => {}), 250); };
+}
+
+// 弹窗
+document.querySelectorAll('dialog').forEach((d) => {
+  d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
+});
+$('b-extra').onclick = async () => {
+  try { await api('cdk/extra', { code: current.code, add: 1 }); await loadDetail(current.code); if (view === 'cdks') loadCdks(); }
+  catch (e) { fail(e); }
+};
+$('b-toggle').onclick = async () => {
+  const disable = current.status !== 'disabled';
+  if (disable && !confirm(`确定停用 ${current.code}？`)) return;
+  try { await api('cdk/status', { code: current.code, status: disable ? 'disabled' : 'enabled' }); await loadDetail(current.code); loaders[view]().catch(() => {}); }
+  catch (e) { fail(e); }
+};
+
+// 生成 CDK：生成完直接进入导出，复制只有「导出」这一个入口
+$('b-gen').onclick = () => $('gen').showModal();
+$('f-gen').onsubmit = (e) => { e.preventDefault(); $('b-do-gen').click(); };
+$('b-do-gen').onclick = async () => {
+  const btn = $('b-do-gen');
+  btn.disabled = true;
+  try {
+    const { codes } = await api('cdks', { count: Number($('g-count').value), batch: $('g-batch').value.trim() });
+    $('gen').close();
+    await openExport();
+    $('e-scope').value = 'new';
+    await doExport();
+    $('e-msg').textContent = `已生成 ${codes.length} 个，${$('e-msg').textContent}`;
+  } catch (err) { fail(err); }
+  finally { btn.disabled = false; }
+};
+
+// 导出未使用 CDK
+async function openExport() {
+  await loadOverview();
+  const all = overview.counts.unused || 0, fresh = overview.unexported || 0;
+  $('e-opt-new').textContent = `还没导出过的（${fresh} 个）`;
+  $('e-opt-all').textContent = `全部未使用（${all} 个）`;
+  $('e-scope').value = fresh ? 'new' : 'all';
+  $('e-wrap').hidden = true; $('b-e-copy').hidden = true; $('e-msg').textContent = '';
+  if (!$('exp').open) $('exp').showModal();
+}
+async function doExport() {
+  const all = $('e-scope').value === 'all';
+  const { codes } = await api('cdks/export', { all });
+  const url = overview?.publicUrl || location.origin + BASE;
+  $('e-out').value = codes.map((c) => ($('e-format').value === 'link' ? `${c} ${url}?cdk=${c}` : c)).join('\n');
+  $('e-wrap').hidden = !codes.length; $('b-e-copy').hidden = !codes.length;
+  $('e-msg').textContent = codes.length ? `导出 ${codes.length} 个，已标记为已导出` : '没有可导出的 CDK';
+  loadCdks().catch(() => {}); loadOverview().catch(() => {});
+}
+$('b-export').onclick = () => openExport().catch(fail);
+$('b-do-exp').onclick = async () => {
+  const btn = $('b-do-exp');
+  btn.disabled = true;
+  try { await doExport(); } catch (err) { fail(err); } finally { btn.disabled = false; }
+};
+$('e-format').onchange = () => {
+  $('e-hint').textContent = $('e-format').value === 'link'
+    ? '注意：卡券会把「卡号:密码」的冒号当分隔符，链接里的 https: 可能被拆开。建议用「仅 CDK」，把使用地址写进闲鱼的发货话术。'
+    : '默认只导出还没导出过的，避免同一个 CDK 重复贴进卡券库存、发给两个买家。';
+};
+$('b-e-copy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('e-out').value); } catch { $('e-out').select(); document.execCommand('copy'); }
+  $('b-e-copy').textContent = '已复制'; setTimeout(() => ($('b-e-copy').textContent = '复制全部'), 1500);
+};
+
+// 登录 / 退出
+async function enter() {
+  try {
+    await loadOverview();
+    try { sessionStorage.setItem('admin-token', token); } catch {}
+    $('login').hidden = true; $('app').hidden = false;
+    go();
+  } catch (e) { $('login-err').textContent = e.message; $('login').hidden = false; }
+}
+$('f-login').onsubmit = (e) => { e.preventDefault(); token = $('token').value.trim(); enter(); };
+$('b-logout').onclick = () => logout('');
+
+// 概览页每 15 秒自动刷新
+setInterval(() => { if (token && view === 'overview' && !document.hidden && !$('dlg').open) loaders.overview().catch(() => {}); }, 15000);
+
+if (token) enter(); else $('login').hidden = false;
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+/* 与 gptsuchong.com 主站一致：中性灰阶 + 胶囊按钮 + 细边框卡片 + 顶部淡冷色光 */
+:root {
+  --bg: #f7f7f5; --card: #ffffff; --text: #0d0d0d; --text-2: #5f5f5a; --muted: #8e8e88;
+  --line: #e2e2dd; --soft: #efefeb; --hover: #e8e8e3;
+  --primary: #0d0d0d; --primary-h: #2f2f2f; --on-primary: #ffffff;
+  --accent: #10a37f; --danger: #e02e2a; --warn: #d97706; --info: #2563eb;
+  --radius: 16px;
+  --font: ui-sans-serif, -apple-system, system-ui, "Segoe UI", Helvetica, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  --num: "DIN Alternate", "Bahnschrift", "Roboto", var(--font);
+  --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --glow: radial-gradient(65% 100% at 50% 0%, rgba(96, 120, 255, .11) 0%, transparent 72%);
+  --shadow: 0 1px 2px rgba(20, 20, 16, .04), 0 6px 20px rgba(20, 20, 16, .05);
+  --ease-out: cubic-bezier(.22, .68, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #212121; --card: #212121; --text: #ececec; --text-2: #b4b4b4; --muted: #8f8f8f;
+    --line: #3a3a3a; --soft: #2f2f2f; --hover: #383838;
+    --primary: #ffffff; --primary-h: #d9d9d9; --on-primary: #0d0d0d;
+    --glow: radial-gradient(65% 100% at 50% 0%, rgba(120, 140, 255, .14) 0%, transparent 72%);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--font); position: relative; }
+a { color: inherit; }
+h2 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+.muted { color: var(--muted); font-size: 13px; }
+.mono { font-family: var(--mono); }
+.bg { position: absolute; inset: 0 0 auto 0; height: 520px; background: var(--glow); pointer-events: none; z-index: -1; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* 导航：透明浮在光晕上，滚动后变磨砂 */
+.topnav { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid transparent; transition: background .2s, border-color .2s; }
+.topnav.scrolled { background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: saturate(180%) blur(14px); border-bottom-color: var(--line); }
+.topnav .container { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.logo { display: inline-flex; align-items: center; gap: 8px; color: var(--text); white-space: nowrap; font-size: 20px; font-weight: 600; text-decoration: none; letter-spacing: -.01em; }
+.brand-icon { display: block; width: 28px; height: 28px; flex: none; background-color: currentColor;
+  -webkit-mask: var(--logo) center / contain no-repeat; mask: var(--logo) center / contain no-repeat; }
+.topnav nav { display: flex; gap: 28px; height: 100%; }
+.topnav nav a { position: relative; display: flex; align-items: center; font-size: 15px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color .15s; }
+.topnav nav a:hover, .topnav nav a.active { color: var(--text); }
+.topnav nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--text); }
+
+/* 按钮：胶囊形，主按钮黑底（深色模式白底） */
+button, .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid transparent; background: var(--primary); color: var(--on-primary);
+  padding: 10px 20px; border-radius: 999px; font: 500 15px/1.4 var(--font); cursor: pointer; text-decoration: none;
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+button:hover { background: var(--primary-h); }
+button:disabled { opacity: .35; cursor: not-allowed; }
+button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+button.ghost:hover:not(:disabled) { background: var(--soft); }
+button.sm { padding: 4px 12px; font-size: 13px; }
+.block { width: 100%; }
+
+input, select, textarea {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--text); font: inherit; outline: none; transition: border-color .15s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--text-2); }
+textarea { font-family: var(--mono); font-size: 13px; resize: vertical; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+.err { color: var(--danger); font-size: 14px; }
+
+/* 状态标签 */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; background: var(--soft); color: var(--text-2); white-space: nowrap; }
+.badge.ok { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.badge.bad { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.badge.warn { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.badge.info { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); }
+
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--line); border-top-color: var(--text); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -3px; }
+button .spinner { width: 14px; height: 14px; border-color: color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; vertical-align: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--text-2); font-weight: 500; }
+.table-wrap { overflow-x: auto; }
+
+.foot { text-align: center; color: var(--muted); font-size: 13px; padding: 28px 0 36px; }
+
+/* 进场：标题先到，正文晚一拍 */
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes fade { from { opacity: 0; } }
+.rise { animation: rise .52s var(--ease-out) both; }
+.rise-2 { animation: rise .52s var(--ease-out) .1s both; }
+.fade-in { animation: rise .42s var(--ease-out) both; }
+
+@media (max-width: 600px) {
+  .container { padding: 0 16px; }
+  .topnav nav { gap: 16px; }
+  .topnav nav a { font-size: 14px; }
+  .logo { font-size: 17px; gap: 6px; }
+  .brand-icon { width: 24px; height: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise, .rise-2, .fade-in { animation: fade .2s ease both; }
+  .spinner { animation-duration: 1.6s; }
+}

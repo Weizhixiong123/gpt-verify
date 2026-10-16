@@ -1,0 +1,14 @@
+{
+  "name": "gpt-verify",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CDK 兑换 5SIM 接码（gptsucong.com/sms）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
