@@ -1,6 +1,6 @@
 # gpt-verify
 
-闲鱼发 CDK → 用户在 `gptsucong.com/sms` 输入 CDK → 自动从 5SIM 买号 → 页面实时显示验证码。
+闲鱼发 CDK → 用户在 `gptsuchong.com/sms` 输入 CDK → 自动从 5SIM 买号 → 页面实时显示验证码。
 
 - Node.js ≥ 22.13，**零依赖**（使用 Node 自带的 `node:sqlite`）
 - 数据存在 `data/app.db`（SQLite）
@@ -77,7 +77,7 @@ docker login ghcr.io -u Weizhixiong123
 
 宝塔「网站」→「添加站点」：
 
-- 域名：`gptsucong.com`（如果 DNS 配了 www，再加一行 `www.gptsucong.com`）
+- 域名：`gptsuchong.com`（如果 DNS 配了 www，再加一行 `www.gptsuchong.com`）
 - PHP 版本：纯静态；数据库：不创建
 
 ### 4. 申请 HTTPS 证书
@@ -116,8 +116,8 @@ location ^~ / {
 
 ### 6. 验证
 
-- `https://gptsucong.com` 会自动跳到 `https://gptsucong.com/sms`
-- `https://gptsucong.com/sms/admin` 登录后能看到 5SIM 余额
+- `https://gptsuchong.com` 会自动跳到 `https://gptsuchong.com/sms`
+- `https://gptsuchong.com/sms/admin` 登录后能看到 5SIM 余额
 - 宝塔「安全」里**不需要**放行 3000 端口（容器只监听本机）
 
 ### 常用操作（宝塔终端，在 `/opt/gpt-verify` 下）
@@ -146,7 +146,7 @@ docker compose cp gpt-verify:/app/data/app.db ./backup-$(date +%F).db
 买家收到的内容形如：
 
 ```
-CDK：ABCD-EFGH-JKLM-NPQR　使用地址：https://gptsucong.com/sms?cdk=ABCD-EFGH-JKLM-NPQR
+CDK：ABCD-EFGH-JKLM-NPQR　使用地址：https://gptsuchong.com/sms?cdk=ABCD-EFGH-JKLM-NPQR
 ```
 
 点链接会自动填入 CDK 并取号。
