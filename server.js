@@ -21,7 +21,7 @@ for (const name of ['sms', 'admin']) {
     // 客服联系方式直接写进页面（转义 <，防止配置内容破坏 script 标签）
     .replaceAll(
       '__SUPPORT_JSON__',
-      JSON.stringify({ wechat: config.supportWechat, qq: config.supportQq }).replace(/</g, '\\u003c')
+      JSON.stringify({ wechat: config.supportWechat, qq: config.supportQq, promo: config.promoPlusDiscount }).replace(/</g, '\\u003c')
     );
 }
 const assets = {
