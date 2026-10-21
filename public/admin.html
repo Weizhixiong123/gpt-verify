@@ -528,7 +528,8 @@ function renderSettings() {
       ['排除国家', r.excludeCountries.join(', ') || '无', 'EXCLUDE_COUNTRIES'],
       ['最低库存', r.minStock, 'MIN_STOCK'],
       ['线路刷新间隔', `${r.refreshMin} 分钟`, 'ROUTE_REFRESH_MIN'],
-      ['熔断', `1 小时内连续失败 ${r.breakerFails} 单，暂停 ${r.breakerPauseMin} 分钟`, 'BREAKER_FAILS / BREAKER_PAUSE_MIN'],
+      ['成功率相近时', `相差不到 ${r.similarRatePts} 个百分点，选便宜的`, 'SIMILAR_RATE_PTS'],
+      ['熔断', `1 小时内连续 ${r.breakerFails} 单收不到码（被拒不算，至少 2 个不同 CDK），暂停 ${r.breakerPauseMin} 分钟`, 'BREAKER_FAILS / BREAKER_PAUSE_MIN'],
     ]),
     group('换号规则', [
       ['每个 CDK 换号次数', `${o.maxSwaps} 次（不含第一次取号）`, 'MAX_SWAPS'],
