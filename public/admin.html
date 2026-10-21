@@ -72,7 +72,7 @@
   .kpi b { display: block; margin-top: 8px; font: 500 34px/1 var(--num); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   .kpi small { display: block; margin-top: 10px; font-size: 12px; color: var(--muted); }
   .kpi.accent b { color: var(--accent); }
-  .strip { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+  .strip { display: grid; grid-template-columns: repeat(6, 1fr); margin-top: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
   .strip a { display: block; padding: 14px 20px; text-decoration: none; }
   .strip a + a { border-left: 1px solid var(--line); }
   .strip a:hover { background: var(--soft); }
@@ -278,12 +278,13 @@
           <div class="tabs" id="c-tabs">
             <button class="active" data-s="">全部</button>
             <button data-s="unused">未使用</button>
+            <button data-s="sold">已卖未使用</button>
             <button data-s="active">进行中</button>
             <button data-s="used">已完成</button>
             <button data-s="disabled">已停用</button>
             <button data-s="voided">已注销</button>
           </div>
-          <input id="c-q" type="search" placeholder="搜索 CDK / 批次">
+          <input id="c-q" type="search" placeholder="搜索 CDK / 批次 / 订单号">
         </div>
         <div class="table-wrap"><table>
           <thead><tr><th>CDK</th><th>状态</th><th>当前号码</th><th>取号次数</th><th>额外次数</th><th>批次</th><th>创建时间</th><th>完成时间</th></tr></thead>
@@ -385,9 +386,9 @@
 <script>
 const BASE = '__BASE__';
 const $ = (id) => document.getElementById(id);
-const STATUS = { unused: '未使用', active: '进行中', used: '已完成', disabled: '已停用',
+const STATUS = { unused: '未使用', sold: '已卖未使用', active: '进行中', used: '已完成', disabled: '已停用',
   pending: '等待中', received: '已收码', finished: '已结束', canceled: '用户换号', banned: '号码被拒', timeout: '超时', released: '平台回收', voided: '已注销' };
-const TONE = { used: 'ok', received: 'ok', finished: 'ok', active: 'info', pending: 'info', disabled: 'bad', banned: 'bad', timeout: 'warn', released: 'warn', voided: 'warn' };
+const TONE = { sold: 'info', used: 'ok', received: 'ok', finished: 'ok', active: 'info', pending: 'info', disabled: 'bad', banned: 'bad', timeout: 'warn', released: 'warn', voided: 'warn' };
 const VIEWS = ['overview', 'orders', 'cdks', 'routes', 'settings'];
 let token = '';
 let overview = null;
@@ -459,7 +460,7 @@ async function loadOverview() {
     ['今日花费', money(t.spend), `近 7 天 ${money(w.spend)}　余额 ${overview.balance ?? '—'}`],
   ].map(([k, v, s, cls]) => `<div class="kpi ${cls || ''}"><span>${k}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('');
 
-  $('strip').innerHTML = [['unused', '未使用 CDK'], ['active', '进行中'], ['used', '已完成'], ['voided', '已注销（待退款）'], ['disabled', '已停用']]
+  $('strip').innerHTML = [['unused', '库存未使用'], ['sold', '已卖未使用'], ['active', '进行中'], ['used', '已完成'], ['voided', '已注销（待退款）'], ['disabled', '已停用']]
     .map(([k, label]) => `<a href="#cdks" data-filter="${k}"><span>${label}</span><b>${c[k] || 0}</b></a>`).join('');
 }
 
@@ -489,7 +490,8 @@ async function loadCdks() {
   const qs = new URLSearchParams({ q: $('c-q').value.trim(), status: filters.cdks, limit: 200 });
   const { items } = await api(`cdks?${qs}`);
   $('c-body').innerHTML = items.map((r) => `<tr>
-    <td class="mono"><a data-code="${esc(r.code)}">${esc(r.code)}</a></td><td>${tag(r.status)}${r.status === 'unused' && r.exported_at ? ' <span class="muted">已导出</span>' : ''}</td><td>${r.last_status ? tag(r.last_status) : ''}</td>
+    <td class="mono"><a data-code="${esc(r.code)}">${esc(r.code)}</a></td><td>${r.status === 'unused' && r.sold_at ? `${tag('sold')} <span class="muted">${time(r.sold_at)}</span>`
+      : tag(r.status) + (r.status === 'unused' && r.exported_at ? ' <span class="muted">已导出</span>' : '')}</td><td>${r.last_status ? tag(r.last_status) : ''}</td>
     <td class="num">${r.order_count}</td><td class="num">${r.extra_swaps || ''}</td><td>${esc(r.batch || '')}</td>
     <td class="num">${time(r.created_at)}</td><td class="num">${time(r.used_at)}</td></tr>`).join('') || empty(8, '没有记录');
 }
@@ -545,7 +547,7 @@ async function loadDetail(code) {
   const { cdk, orders, state } = await api(`cdk?code=${encodeURIComponent(code)}`);
   current = cdk;
   $('dt-code').textContent = cdk.code;
-  $('dt-info').innerHTML = `${tag(cdk.status)}<span>还可换号 ${state.numbersLeft} 次</span><span>额外次数 ${cdk.extra_swaps}</span><span>批次 ${esc(cdk.batch || '-')}</span><span>创建于 ${time(cdk.created_at)}</span>${cdk.voided_at ? `<span>用户注销于 ${time(cdk.voided_at)}</span>` : ""}`;
+  $('dt-info').innerHTML = `${tag(cdk.status === 'unused' && cdk.sold_at ? 'sold' : cdk.status)}${cdk.sold_at ? `<span>卖出于 ${time(cdk.sold_at)}</span>` : ''}${cdk.order_ref ? `<span>闲鱼订单 ${esc(cdk.order_ref)}</span>` : ''}<span>还可换号 ${state.numbersLeft} 次</span><span>额外次数 ${cdk.extra_swaps}</span><span>批次 ${esc(cdk.batch || '-')}</span><span>创建于 ${time(cdk.created_at)}</span>${cdk.voided_at ? `<span>用户注销于 ${time(cdk.voided_at)}</span>` : ""}`;
   $('dt-link').href = `${overview?.publicUrl || location.origin + BASE}?cdk=${cdk.code}`;
   $('b-toggle').textContent = cdk.status === 'disabled' ? '启用' : '停用';
   $('dt-body').innerHTML = orders.map((o) => `<tr>

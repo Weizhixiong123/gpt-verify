@@ -139,6 +139,9 @@ function stream(req, res, url) {
 const admin = {
   async 'GET overview'() {
     const counts = Object.fromEntries(q.countByStatus.all().map((r) => [r.status, r.n]));
+    // 「未使用」拆成：还在库存里的 unused，和已经通过接口卖出去、买家还没用的 sold
+    counts.sold = q.countSold.get().n;
+    counts.unused = Math.max(0, (counts.unused || 0) - counts.sold);
     let balance = null;
     let balanceError = null;
     try {
@@ -217,7 +220,7 @@ const admin = {
     const c = service.normalizeCdk(code);
     const cdk = c && q.getCdk.get(c);
     if (!cdk) throw new ApiError('CDK 不存在', 404);
-    if (status === 'disabled') q.setCdkStatus.run('disabled', c);
+    if (status === 'disabled') await service.disableCdk(c);
     else if (status === 'enabled') q.setCdkStatus.run(cdk.used_at ? 'used' : cdk.activated_at ? 'active' : 'unused', c);
     else throw new ApiError('状态无效');
     service.bus.emit(c);
@@ -250,6 +253,26 @@ async function handle(req, res) {
   if (req.method === 'POST' && route === '/api/swap') {
     const { cdk, reason } = await readJson(req);
     return withCdk(req, res, () => service.swap(cdk, reason === 'rejected' ? 'rejected' : 'nocode'));
+  }
+  // 取卡接口：xianyu-auto-reply 买家付款后调用，返回纯文本 CDK
+  if ((req.method === 'GET' || req.method === 'POST') && route === '/api/card') {
+    if (!config.cardApiKey) throw new ApiError('Not found', 404);
+    const ip = clientIp(req);
+    checkBlocked(ip);
+    const auth = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '') || String(req.headers['x-api-key'] || '');
+    const given = Buffer.from(auth);
+    const want = Buffer.from(config.cardApiKey);
+    if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) {
+      recordFailure(ip);
+      throw new ApiError('Unauthorized', 401);
+    }
+    const body = req.method === 'POST' ? await readJson(req).catch(() => ({})) : {};
+    let orderRef = url.searchParams.get('order_id') || body.order_id || '';
+    // 变量没被替换（原样传来 {order_id} 之类）就当作没有订单号
+    if (/[{}]/.test(orderRef)) orderRef = '';
+    const code = service.issueCard(orderRef);
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(code);
   }
   if (req.method === 'POST' && route === '/api/void') {
     const { cdk } = await readJson(req);
