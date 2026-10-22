@@ -135,7 +135,7 @@
   .field { display: block; margin-bottom: 14px; }
   .field > span { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--text-2); }
   .field-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; }
-  #e-out { min-height: 220px; }
+  #g-out { min-height: 120px; }
 
   /* ---------- 窄屏：侧边栏变顶栏 ---------- */
   @media (max-width: 1100px) {
@@ -271,14 +271,14 @@
     <section class="page" data-page="cdks" hidden>
       <div class="page-head rise">
         <div><h1>CDK</h1><p>点击 CDK 查看取号记录、补换号次数或停用</p></div>
-        <div class="acts"><button class="ghost sm" data-reload>刷新</button><button class="ghost sm" id="b-export">导出未使用</button><button class="sm" id="b-gen">生成 CDK</button></div>
+        <div class="acts"><button class="ghost sm" data-reload>刷新</button><button class="sm" id="b-gen">生成 CDK</button></div>
       </div>
       <div class="box rise-2">
         <div class="toolbar">
           <div class="tabs" id="c-tabs">
-            <button class="active" data-s="">全部</button>
-            <button data-s="unused">未使用</button>
-            <button data-s="sold">已卖未使用</button>
+            <button class="active" data-s="sold">待兑换</button>
+            <button data-s="">全部</button>
+            <button data-s="unused">手动生成</button>
             <button data-s="active">进行中</button>
             <button data-s="used">已完成</button>
             <button data-s="disabled">已停用</button>
@@ -338,55 +338,27 @@
 <!-- 生成 CDK -->
 <dialog class="dlg narrow" id="gen">
   <div class="top">
-    <div><h2>生成 CDK</h2><p>生成后会自动打开导出窗口，复制去卡券库存</p></div>
+    <div><h2>生成 CDK</h2><p>用于售后补发或测试。闲鱼订单由闲管家 / 取卡接口自动生成，不需要在这里生成</p></div>
     <button class="close" type="button" data-close aria-label="关闭">×</button>
   </div>
   <form class="body" id="f-gen">
     <div class="field-row">
-      <label class="field"><span>数量</span><input type="number" id="g-count" value="50" min="1" max="1000"></label>
-      <label class="field"><span>批次备注（可选）</span><input id="g-batch" placeholder="例如：10月第一批"></label>
+      <label class="field"><span>数量</span><input type="number" id="g-count" value="1" min="1" max="1000"></label>
+      <label class="field"><span>备注（可选）</span><input id="g-batch" placeholder="例如：订单 xxx 补发"></label>
     </div>
+    <div id="g-wrap" hidden><textarea id="g-out" readonly wrap="off"></textarea></div>
   </form>
   <div class="acts">
+    <span class="muted" id="g-msg"></span>
+    <button class="ghost sm" id="b-g-copy" type="button" hidden>复制</button>
     <button class="sm" id="b-do-gen" type="button">生成</button>
-  </div>
-</dialog>
-
-<!-- 导出未使用 CDK -->
-<dialog class="dlg narrow" id="exp">
-  <div class="top">
-    <div><h2>导出未使用 CDK</h2><p>每行一个，直接粘贴到 xianyu-auto-reply 卡券的「批量数据」</p></div>
-    <button class="close" type="button" data-close aria-label="关闭">×</button>
-  </div>
-  <div class="body">
-    <div class="field-row" style="grid-template-columns: 1fr 1fr">
-      <label class="field"><span>范围</span>
-        <select id="e-scope">
-          <option value="new" id="e-opt-new">还没导出过的</option>
-          <option value="all" id="e-opt-all">全部未使用</option>
-        </select>
-      </label>
-      <label class="field"><span>格式</span>
-        <select id="e-format">
-          <option value="code">仅 CDK（推荐）</option>
-          <option value="link">CDK + 使用链接</option>
-        </select>
-      </label>
-    </div>
-    <p class="muted" id="e-hint" style="margin:-4px 0 14px">默认只导出还没导出过的，避免同一个 CDK 重复贴进卡券库存、发给两个买家。</p>
-    <div id="e-wrap" hidden><textarea id="e-out" readonly wrap="off"></textarea></div>
-  </div>
-  <div class="acts">
-    <span class="muted" id="e-msg"></span>
-    <button class="ghost sm" id="b-e-copy" type="button" hidden>复制全部</button>
-    <button class="sm" id="b-do-exp" type="button">导出</button>
   </div>
 </dialog>
 
 <script>
 const BASE = '__BASE__';
 const $ = (id) => document.getElementById(id);
-const STATUS = { unused: '未使用', sold: '已卖未使用', active: '进行中', used: '已完成', disabled: '已停用',
+const STATUS = { unused: '手动生成', sold: '待兑换', active: '进行中', used: '已完成', disabled: '已停用',
   pending: '等待中', received: '已收码', finished: '已结束', canceled: '用户换号', banned: '号码被拒', timeout: '超时', released: '平台回收', voided: '已注销' };
 const TONE = { sold: 'info', used: 'ok', received: 'ok', finished: 'ok', active: 'info', pending: 'info', disabled: 'bad', banned: 'bad', timeout: 'warn', released: 'warn', voided: 'warn' };
 const VIEWS = ['overview', 'orders', 'cdks', 'routes', 'settings'];
@@ -394,7 +366,7 @@ let token = '';
 let overview = null;
 let current = null;
 let view = 'overview';
-const filters = { orders: '', cdks: '' };
+const filters = { orders: '', cdks: 'sold' };
 try { token = sessionStorage.getItem('admin-token') || ''; } catch {}
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -460,7 +432,7 @@ async function loadOverview() {
     ['今日花费', money(t.spend), `近 7 天 ${money(w.spend)}　余额 ${overview.balance ?? '—'}`],
   ].map(([k, v, s, cls]) => `<div class="kpi ${cls || ''}"><span>${k}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('');
 
-  $('strip').innerHTML = [['unused', '库存未使用'], ['sold', '已卖未使用'], ['active', '进行中'], ['used', '已完成'], ['voided', '已注销（待退款）'], ['disabled', '已停用']]
+  $('strip').innerHTML = [['sold', '待兑换'], ['unused', '手动生成未使用'], ['active', '进行中'], ['used', '已完成'], ['voided', '已注销（待退款）'], ['disabled', '已停用']]
     .map(([k, label]) => `<a href="#cdks" data-filter="${k}"><span>${label}</span><b>${c[k] || 0}</b></a>`).join('');
 }
 
@@ -491,7 +463,7 @@ async function loadCdks() {
   const { items } = await api(`cdks?${qs}`);
   $('c-body').innerHTML = items.map((r) => `<tr>
     <td class="mono"><a data-code="${esc(r.code)}">${esc(r.code)}</a></td><td>${r.status === 'unused' && r.sold_at ? `${tag('sold')} <span class="muted">${time(r.sold_at)}</span>`
-      : tag(r.status) + (r.status === 'unused' && r.exported_at ? ' <span class="muted">已导出</span>' : '')}</td><td>${r.last_status ? tag(r.last_status) : ''}</td>
+      : tag(r.status)}</td><td>${r.last_status ? tag(r.last_status) : ''}</td>
     <td class="num">${r.order_count}</td><td class="num">${r.extra_swaps || ''}</td><td>${esc(r.batch || '')}</td>
     <td class="num">${time(r.created_at)}</td><td class="num">${time(r.used_at)}</td></tr>`).join('') || empty(8, '没有记录');
 }
@@ -625,56 +597,27 @@ $('b-toggle').onclick = async () => {
   catch (e) { fail(e); }
 };
 
-// 生成 CDK：生成完直接进入导出，复制只有「导出」这一个入口
-$('b-gen').onclick = () => $('gen').showModal();
+// 生成 CDK（售后补发 / 测试）：生成后直接在弹窗里显示，一键复制
+$('b-gen').onclick = () => {
+  $('g-wrap').hidden = true; $('b-g-copy').hidden = true; $('g-msg').textContent = '';
+  $('gen').showModal();
+};
 $('f-gen').onsubmit = (e) => { e.preventDefault(); $('b-do-gen').click(); };
 $('b-do-gen').onclick = async () => {
   const btn = $('b-do-gen');
   btn.disabled = true;
   try {
     const { codes } = await api('cdks', { count: Number($('g-count').value), batch: $('g-batch').value.trim() });
-    $('gen').close();
-    await openExport();
-    $('e-scope').value = 'new';
-    await doExport();
-    $('e-msg').textContent = `已生成 ${codes.length} 个，${$('e-msg').textContent}`;
+    $('g-out').value = codes.join('\n');
+    $('g-wrap').hidden = false; $('b-g-copy').hidden = false;
+    $('g-msg').textContent = `已生成 ${codes.length} 个`;
+    loadCdks().catch(() => {}); loadOverview().catch(() => {});
   } catch (err) { fail(err); }
   finally { btn.disabled = false; }
 };
-
-// 导出未使用 CDK
-async function openExport() {
-  await loadOverview();
-  const all = overview.counts.unused || 0, fresh = overview.unexported || 0;
-  $('e-opt-new').textContent = `还没导出过的（${fresh} 个）`;
-  $('e-opt-all').textContent = `全部未使用（${all} 个）`;
-  $('e-scope').value = fresh ? 'new' : 'all';
-  $('e-wrap').hidden = true; $('b-e-copy').hidden = true; $('e-msg').textContent = '';
-  if (!$('exp').open) $('exp').showModal();
-}
-async function doExport() {
-  const all = $('e-scope').value === 'all';
-  const { codes } = await api('cdks/export', { all });
-  const url = overview?.publicUrl || location.origin + BASE;
-  $('e-out').value = codes.map((c) => ($('e-format').value === 'link' ? `${c} ${url}?cdk=${c}` : c)).join('\n');
-  $('e-wrap').hidden = !codes.length; $('b-e-copy').hidden = !codes.length;
-  $('e-msg').textContent = codes.length ? `导出 ${codes.length} 个，已标记为已导出` : '没有可导出的 CDK';
-  loadCdks().catch(() => {}); loadOverview().catch(() => {});
-}
-$('b-export').onclick = () => openExport().catch(fail);
-$('b-do-exp').onclick = async () => {
-  const btn = $('b-do-exp');
-  btn.disabled = true;
-  try { await doExport(); } catch (err) { fail(err); } finally { btn.disabled = false; }
-};
-$('e-format').onchange = () => {
-  $('e-hint').textContent = $('e-format').value === 'link'
-    ? '注意：卡券会把「卡号:密码」的冒号当分隔符，链接里的 https: 可能被拆开。建议用「仅 CDK」，把使用地址写进闲鱼的发货话术。'
-    : '默认只导出还没导出过的，避免同一个 CDK 重复贴进卡券库存、发给两个买家。';
-};
-$('b-e-copy').onclick = async () => {
-  try { await navigator.clipboard.writeText($('e-out').value); } catch { $('e-out').select(); document.execCommand('copy'); }
-  $('b-e-copy').textContent = '已复制'; setTimeout(() => ($('b-e-copy').textContent = '复制全部'), 1500);
+$('b-g-copy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('g-out').value); } catch { $('g-out').select(); document.execCommand('copy'); }
+  $('b-g-copy').textContent = '已复制'; setTimeout(() => ($('b-g-copy').textContent = '复制'), 1500);
 };
 
 // 登录 / 退出
