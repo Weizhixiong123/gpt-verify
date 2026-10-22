@@ -8,6 +8,7 @@ const fivesim = require('./lib/fivesim');
 const routes = require('./lib/routes');
 const { countryName } = require('./lib/countries');
 const service = require('./lib/service');
+const xgj = require('./lib/xgj');
 const { ApiError } = service;
 
 const BASE = config.basePath;
@@ -48,7 +49,7 @@ function sendHtml(res, html) {
   res.end(html);
 }
 
-async function readJson(req) {
+async function readRaw(req) {
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
@@ -56,9 +57,14 @@ async function readJson(req) {
     if (size > 16 * 1024) throw new ApiError('请求过大', 413);
     chunks.push(chunk);
   }
-  if (!chunks.length) return {};
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+async function readJson(req) {
+  const raw = await readRaw(req);
+  if (!raw) return {};
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return JSON.parse(raw);
   } catch {
     throw new ApiError('请求格式错误', 400);
   }
@@ -253,6 +259,11 @@ async function handle(req, res) {
   if (req.method === 'POST' && route === '/api/swap') {
     const { cdk, reason } = await readJson(req);
     return withCdk(req, res, () => service.swap(cdk, reason === 'rejected' ? 'rejected' : 'nocode'));
+  }
+  // 闲管家货源接口：baseUrl = PUBLIC_URL + /xgj，闲管家按 /goofish/... 路径调用
+  if (req.method === 'POST' && route.startsWith('/xgj/goofish/')) {
+    const raw = await readRaw(req);
+    return sendJson(res, 200, await xgj.handle(route.slice('/xgj'.length), url, raw, clientIp(req)));
   }
   // 取卡接口：xianyu-auto-reply 买家付款后调用，返回纯文本 CDK
   if ((req.method === 'GET' || req.method === 'POST') && route === '/api/card') {
