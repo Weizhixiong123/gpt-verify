@@ -147,8 +147,12 @@
     .side { position: sticky; z-index: 20; height: auto; flex-direction: row; align-items: center; gap: 8px; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--line);
             background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: saturate(180%) blur(14px); }
     .side .logo { padding: 0 4px; font-size: 0; gap: 0; }
-    .side .logo small, .side-foot { display: none; }
-    .menu { flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+    .side .logo small { display: none; }
+    .menu { flex: 1; min-width: 0; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+    /* 顶栏右侧只留「退出」，余额在概览「今日花费」里能看到 */
+    .side-foot { margin: 0; flex: none; }
+    .side-foot .bal, .side-links a { display: none; }
+    .side-links { padding: 0; }
     .menu a { padding: 7px 12px; white-space: nowrap; }
     .menu a svg, .menu a .cnt { display: none; }
     .page { padding: 20px 16px 48px; }
@@ -160,6 +164,46 @@
     .kv { grid-template-columns: 1fr; }
     .kv > div:nth-child(odd) { padding-bottom: 0; border-bottom: 0; font-size: 12px; }
     .toolbar input { width: 100%; }
+  }
+  /* ---------- 手机：表格改成一行一张卡片，每格上方显示列名（列名由脚本从表头复制到 data-label） ---------- */
+  @media (max-width: 640px) {
+    .page { padding: 16px 12px 40px; }
+    .page-head { align-items: center; margin-bottom: 16px; }
+    .page-head h1 { font-size: 24px; }
+    .page-head p { font-size: 13px; }
+    .kpis { gap: 10px; }
+    .kpi { padding: 14px 16px; }
+    .strip, .grid2 { margin-top: 10px; gap: 10px; }
+    .toolbar { padding: 10px 12px; }
+    .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; }
+    .tabs button { flex: none; }
+
+    .table-wrap { overflow: visible; }
+    .table-wrap thead { display: none; }
+    .table-wrap table, .table-wrap tbody { display: block; }
+    .table-wrap tr { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .table-wrap tr:last-child { border-bottom: 0; }
+    .table-wrap td { display: block; min-width: 0; padding: 0 !important; border: 0; white-space: normal; word-break: break-all; font-size: 14px; }
+    .table-wrap td::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 11px; font-weight: 400; font-family: inherit; color: var(--muted); }
+    .box table tbody tr:hover td { background: none; }
+    /* 第一格（时间 / CDK）当卡片标题，占满一行 */
+    .table-wrap td:first-child { grid-column: 1 / -1; font-weight: 600; }
+    .table-wrap td:first-child::before, .table-wrap td.empty::before { display: none; }
+    .table-wrap td.empty { grid-column: 1 / -1; padding: 24px 0 !important; }
+    .table-wrap td.blank { display: none; }
+    /* 线路表：排名序号不单独占一格，国家当标题 */
+    #rt-body td:first-child { display: none; }
+    #rt-body td:nth-child(2) { grid-column: 1 / -1; font-weight: 600; }
+    #rt-body td:nth-child(2)::before { display: none; }
+
+    /* 弹窗变成底部抽屉 */
+    .dlg, .dlg.narrow { width: 100vw; max-height: 92vh; margin: auto 0 0; border-radius: 20px 20px 0 0; border-bottom: 0; }
+    .dlg .top { padding: 18px 16px 14px; }
+    .dlg .top h2.mono { font-size: 17px; }
+    .dlg .body { padding: 16px; }
+    .dlg .acts { flex-wrap: wrap; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+    .dlg .acts .muted { flex-basis: 100%; }
+    .dlg .table-wrap { max-height: none; }
   }
   @media (max-width: 480px) {
     .kpi b { font-size: 28px; }
@@ -395,6 +439,19 @@ function logout(msg) {
   token = '';
   $('app').hidden = true; $('login').hidden = false; $('login-err').textContent = msg || '';
 }
+
+// 手机上表格显示成卡片：把表头文字复制到每一格的 data-label，CSS 用它当小标题
+document.querySelectorAll('table').forEach((table) => {
+  const tbody = table.tBodies[0];
+  if (!table.tHead || !tbody) return;
+  const heads = [...table.tHead.rows[0].cells].map((th) => th.textContent.trim());
+  new MutationObserver(() => {
+    for (const tr of tbody.rows) [...tr.cells].forEach((td, i) => {
+      if (heads[i]) td.dataset.label = heads[i];
+      td.classList.toggle('blank', !td.textContent.trim());
+    });
+  }).observe(tbody, { childList: true });
+});
 
 // ---------- 订单行（概览「最近号码」和号码记录共用）----------
 function orderRow(o, withRate) {
