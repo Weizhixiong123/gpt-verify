@@ -247,9 +247,11 @@ async function handle(req, res) {
   if (BASE && p !== BASE && !p.startsWith(BASE + '/')) return sendJson(res, 404, { error: 'Not found' });
   const route = p.slice(BASE.length) || '/';
 
-  if (req.method === 'GET' && (route === '/' || route === '')) return sendHtml(res, pages.sms);
-  if (req.method === 'GET' && route === '/admin') return sendHtml(res, pages.admin);
-  if (req.method === 'GET' && assets[route]) {
+  // 页面和静态文件也响应 HEAD（Node 会自动不发正文），和个人工作台一致；原来 HEAD 返回 404
+  const isGet = req.method === 'GET' || req.method === 'HEAD';
+  if (isGet && (route === '/' || route === '')) return sendHtml(res, pages.sms);
+  if (isGet && route === '/admin') return sendHtml(res, pages.admin);
+  if (isGet && assets[route]) {
     res.writeHead(200, { 'Content-Type': assets[route].type, 'Cache-Control': 'public, max-age=3600' });
     return res.end(assets[route].body);
   }
