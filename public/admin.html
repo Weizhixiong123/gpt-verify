@@ -8,6 +8,13 @@
 <meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
 <title>接码后台 - GPT 速充</title>
 <link rel="icon" type="image/svg+xml" href="__BASE__/logo.svg">
+<!-- 添加到手机桌面：安卓用 manifest，iPhone 用 apple-touch-icon 和下面几个 meta -->
+<link rel="manifest" href="__BASE__/admin.webmanifest">
+<link rel="apple-touch-icon" href="__BASE__/img/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="接码后台">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="__BASE__/theme.css">
 <style>
   :root { --logo: url('__BASE__/logo.svg'); --side: 232px; }
@@ -411,7 +418,8 @@ let overview = null;
 let current = null;
 let view = 'overview';
 const filters = { orders: '', cdks: 'sold' };
-try { token = sessionStorage.getItem('admin-token') || ''; } catch {}
+// 记住登录：添加到桌面后每次打开不用再输密码（点「退出」会清掉）
+try { token = localStorage.getItem('admin-token') || ''; } catch {}
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const time = (ms) => (ms ? new Date(ms).toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
@@ -435,7 +443,7 @@ async function api(path, body) {
 const fail = (e) => alert(e.message);
 
 function logout(msg) {
-  try { sessionStorage.removeItem('admin-token'); } catch {}
+  try { localStorage.removeItem('admin-token'); } catch {}
   token = '';
   $('app').hidden = true; $('login').hidden = false; $('login-err').textContent = msg || '';
 }
@@ -681,7 +689,7 @@ $('b-g-copy').onclick = async () => {
 async function enter() {
   try {
     await loadOverview();
-    try { sessionStorage.setItem('admin-token', token); } catch {}
+    try { localStorage.setItem('admin-token', token); } catch {}
     $('login').hidden = true; $('app').hidden = false;
     go();
   } catch (e) { $('login-err').textContent = e.message; $('login').hidden = false; }
@@ -693,6 +701,9 @@ $('b-logout').onclick = () => logout('');
 setInterval(() => { if (token && view === 'overview' && !document.hidden && !$('dlg').open) loaders.overview().catch(() => {}); }, 15000);
 
 if (token) enter(); else $('login').hidden = false;
+
+// 注册 Service Worker，安卓 Chrome 才会出现「安装应用 / 添加到主屏幕」
+if ('serviceWorker' in navigator) navigator.serviceWorker.register(`${BASE}/admin-sw.js`, { scope: `${BASE}/admin` }).catch(() => {});
 </script>
 </body>
 </html>

@@ -31,6 +31,12 @@ const assets = {
   // ChatGPT 发送验证码时「短信」按钮在右边 / 左边的两种界面截图
   '/img/sms-right.png': { type: 'image/png', body: fs.readFileSync(path.join(__dirname, 'public', 'img', 'sms-right.png')) },
   '/img/sms-left.png': { type: 'image/png', body: fs.readFileSync(path.join(__dirname, 'public', 'img', 'sms-left.png')) },
+  // 后台添加到手机桌面：应用清单、图标、Service Worker
+  '/admin.webmanifest': { type: 'application/manifest+json; charset=utf-8', body: fs.readFileSync(path.join(__dirname, 'public', 'admin.webmanifest')) },
+  '/admin-sw.js': { type: 'text/javascript; charset=utf-8', body: fs.readFileSync(path.join(__dirname, 'public', 'admin-sw.js')) },
+  '/img/icon-180.png': { type: 'image/png', body: fs.readFileSync(path.join(__dirname, 'public', 'img', 'icon-180.png')) },
+  '/img/icon-192.png': { type: 'image/png', body: fs.readFileSync(path.join(__dirname, 'public', 'img', 'icon-192.png')) },
+  '/img/icon-512.png': { type: 'image/png', body: fs.readFileSync(path.join(__dirname, 'public', 'img', 'icon-512.png')) },
 };
 
 // ---- 工具 ----
