@@ -53,8 +53,12 @@
                   border: 1px solid var(--line); border-radius: 10px; background: #fff; }
   .sms-pics figcaption { margin-top: 4px; font-size: 12px; color: var(--muted); text-align: center; }
 
-  .swap-tip { margin: 20px 2px 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
-  .swap-tip.due { color: var(--warn); }
+  /* 换号提示：做成醒目的提示框，按钮名加粗，买家一眼能看到什么时候点哪个 */
+  .swap-tip { margin: 20px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.7; color: var(--text);
+              border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); background: color-mix(in srgb, var(--warn) 9%, var(--card)); }
+  .swap-tip b { font-weight: 700; }
+  .swap-tip b.red { color: var(--danger); }
+  .swap-tip.due { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, var(--card)); }
   .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
   .acts button { padding: 11px 12px; font-size: 14px; }
 
@@ -528,15 +532,20 @@ function tick() {
   const mins = Math.max(1, Math.round((o.swapAt - o.createdAt) / 60000));
   $('p-tip').classList.toggle('due', wait <= 0 && !noMore);
   // 两个按钮都是换一个新号码，区别在什么时候用：一直收不到码 → 等满冷却时间再换；ChatGPT 说号码不能用 → 立即换
-  $('p-tip').textContent = noMore ? `验证码一般 1 分钟内到达。换号次数已用完，如果一直收不到，${state.support}。`
-    : wait > 0 ? `验证码一般 1 分钟内到达。一直收不到，${mins} 分钟后可点「没收到码，换号」；ChatGPT 提示号码无法使用，直接点「号码被拒，换号」。`
-    : `已经等了 ${mins} 分钟，还没收到验证码，可以点「没收到码，换号」。`;
+  const html = noMore ? `验证码一般 <b>1 分钟内</b>到达。换号次数已用完，如果一直收不到，${escHtml(state.support)}。`
+    : wait > 0 ? `验证码一般 <b>1 分钟内</b>到达。一直收不到，<b>${mins} 分钟后</b>可点<b>「没收到码，换号」</b>；ChatGPT 提示号码无法使用，直接点<b class="red">「号码被拒，换号」</b>。`
+    : `已经等了 <b>${mins} 分钟</b>，还没收到验证码，可以点<b>「没收到码，换号」</b>。`;
+  // 每秒都会调用，内容没变就不重写，免得打断用户选中文字
+  if ($('p-tip').innerHTML !== html) $('p-tip').innerHTML = html;
   if (busy) return;
   $('b-swap').disabled = noMore || wait > 0;
   $('b-swap').textContent = noMore ? '换号次数已用完' : wait > 0 ? `没收到码，换号（${wait}s）` : '没收到码，换号';
   $('b-reject').disabled = noMore;
 }
 setInterval(tick, 1000);
+function escHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 
 // 服务端推送：验证码一到立刻显示
