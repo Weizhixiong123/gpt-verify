@@ -1,5 +1,5 @@
 {
-  "id": "__BASE__/admin",
+  "id": "__BASE__/admin?app=2",
   "name": "GPT 速充 接码后台",
   "short_name": "接码后台",
   "start_url": "__BASE__/admin",
