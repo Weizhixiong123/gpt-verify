@@ -265,8 +265,8 @@ async function handle(req, res) {
     return withCdk(req, res, () => service.newNumber(cdk));
   }
   if (req.method === 'POST' && route === '/api/swap') {
-    const { cdk } = await readJson(req);
-    return withCdk(req, res, () => service.swap(cdk));
+    const { cdk, reason } = await readJson(req);
+    return withCdk(req, res, () => service.swap(cdk, reason === 'rejected' ? 'rejected' : 'nocode'));
   }
   // 闲管家货源接口：baseUrl = PUBLIC_URL + /xgj，闲管家按 /goofish/... 路径调用
   if (req.method === 'POST' && route.startsWith('/xgj/goofish/')) {

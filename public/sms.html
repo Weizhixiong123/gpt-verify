@@ -59,7 +59,7 @@
   .swap-tip b { font-weight: 700; }
   .swap-tip b.red { color: var(--danger); }
   .swap-tip.due { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, var(--card)); }
-  .acts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 14px; }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
   .acts button { padding: 11px 12px; font-size: 14px; }
 
   .done-head { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 16px; font-weight: 600; }
@@ -328,6 +328,7 @@
         <p class="swap-tip" id="p-tip"></p>
         <div class="acts">
           <button class="ghost" id="b-swap">没收到码，换号</button>
+          <button class="ghost" id="b-reject">号码被拒，换号</button>
         </div>
       </div>
 
@@ -534,15 +535,16 @@ function tick() {
   // 提示和按钮一致：满 SWAP_COOLDOWN_SEC（默认 2 分钟）才能点「没收到码，换号」
   const mins = Math.max(1, Math.round((o.swapAt - o.createdAt) / 60000));
   $('p-tip').classList.toggle('due', wait <= 0 && !noMore);
-  // 未收到码或号码无法使用，都等待冷却结束后统一换号。
+  // 两个按钮都是换一个新号码，区别在什么时候用：一直收不到码 → 等满冷却时间再换；ChatGPT 说号码不能用 → 立即换
   const html = noMore ? `验证码一般 <b>1 分钟内</b>到达。换号次数已用完，如果一直收不到，${escHtml(state.support)}。`
-    : wait > 0 ? `验证码一般 <b>1 分钟内</b>到达。未收到验证码或 ChatGPT 提示号码无法使用，请等待倒计时结束后点<b>「没收到码，换号」</b>。`
-    : `已经等了 <b>${mins} 分钟</b>，未收到验证码或号码无法使用，可以点<b>「没收到码，换号」</b>。`;
+    : wait > 0 ? `验证码一般 <b>1 分钟内</b>到达。一直收不到，<b>${mins} 分钟后</b>可点<b>「没收到码，换号」</b>；ChatGPT 提示号码无法使用，直接点<b class="red">「号码被拒，换号」</b>。`
+    : `已经等了 <b>${mins} 分钟</b>，还没收到验证码，可以点<b>「没收到码，换号」</b>。`;
   // 每秒都会调用，内容没变就不重写，免得打断用户选中文字
   if ($('p-tip').innerHTML !== html) $('p-tip').innerHTML = html;
   if (busy) return;
   $('b-swap').disabled = noMore || wait > 0;
   $('b-swap').textContent = noMore ? '换号次数已用完' : wait > 0 ? `没收到码，换号（${wait}s）` : '没收到码，换号';
+  $('b-reject').disabled = noMore;
 }
 setInterval(tick, 1000);
 function escHtml(v) {
@@ -565,7 +567,17 @@ $('v-input').addEventListener('submit', (e) => {
   const v = $('cdk').value.trim();
   if (v) act($('b-redeem'), () => post('/api/redeem', { cdk: v }));
 });
-$('b-swap').onclick = () => act($('b-swap'), () => post('/api/swap', { cdk }));
+$('b-swap').onclick = () => act($('b-swap'), () => post('/api/swap', { cdk, reason: 'nocode' }));
+$('b-reject').onclick = async () => {
+  const o = state && state.order;
+  const phone = o ? (o.dialCode ? `${o.dialCode} ${o.local}` : o.phone) : '';
+  const ok = await confirmDialog({
+    title: 'ChatGPT 提示这个号码无法使用？',
+    text: `换号后当前号码 ${phone} 会作废，请在 ChatGPT 里改填新号码。换号后还剩 ${Math.max(0, state.numbersLeft - 1)} 次换号机会。`,
+    ok: '换一个号码',
+  });
+  if (ok) act($('b-reject'), () => post('/api/swap', { cdk, reason: 'rejected' }));
+};
 
 // 注销 CDK（申请退款前）：后端会先取消正在等码的号码，再把 CDK 作废
 $('b-void').onclick = async () => {
