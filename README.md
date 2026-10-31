@@ -169,7 +169,7 @@ CDK：ABCD-EFGH-JKLM-NPQR　使用地址：https://gptsuchong.com/sms?cdk=ABCD-E
 
 - `PRICE_CAP` / `PRICE_CAP_RETRY` / `ESCALATE_AFTER`：前几次取号的单价上限、试错后放宽的上限
 - `EXCLUDE_COUNTRIES`：不想用的国家
-- `MAX_SWAPS`：每个 CDK 的换号次数（默认 5）
+- `MAX_SWAPS`：每个 CDK 的换号次数（默认 10）
 - `SWAP_COOLDOWN_SEC`：取号后多久可以换号（默认 120 秒）
 
 ## 文件结构
