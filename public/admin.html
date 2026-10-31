@@ -357,7 +357,7 @@
           <thead><tr><th>#</th><th>国家</th><th>运营商</th><th>单价</th><th>库存</th><th>综合得分</th><th>5SIM 24h / 7天 / 30天</th><th>本站 成功/总数</th><th>状态</th></tr></thead>
           <tbody id="rt-body"></tbody>
         </table></div>
-        <p class="foot-note">综合得分 = 5SIM 分时成功率（24h×0.5 + 7天×0.3 + 30天×0.2）与本站实际成功率加权，本站样本越多权重越大。用户第 1 次取号从价格上限内得分最高的线路开始；换号时跳过该用户失败过的线路；试错超过设定次数后放宽价格上限。</p>
+        <p class="foot-note">可在设置里切换分配策略：按网站排名时，国家按 sms.fur.li 返回顺序分配；按成功率时，使用原有综合得分和价格逻辑。综合得分由 5SIM 分时成功率（1h×0.25 + 24h×0.4 + 7天×0.2 + 30天×0.15，缺失项重分配权重）与本站结果加权。库存不足、超出价格上限或熔断的线路会跳过。</p>
       </div>
     </section>
 
@@ -538,7 +538,8 @@ async function loadCdks() {
 // ---------- 线路 ----------
 async function loadRoutes() {
   const s = await api('routes');
-  $('rt-sub').innerHTML = (s.updatedAt ? `每 10 分钟从 5SIM 更新，上次 ${time(s.updatedAt)}` : '尚未获取')
+  $('rt-sub').innerHTML = (s.mode === 'recommended' ? '按 sms.fur.li 国家顺序；' : '按成功率；')
+    + (s.updatedAt ? `上次更新 ${time(s.updatedAt)}` : '尚未获取')
     + `　单价上限：前 ${s.escalateAfter} 次 ${s.priceCap}，之后 ${s.priceCapRetry}`
     + (s.lastError ? `　<span class="err">刷新失败：${esc(s.lastError)}</span>` : '');
   $('rt-body').innerHTML = s.routes.map((r, i) => {
@@ -557,6 +558,15 @@ function renderSettings() {
   const group = (title, rows) => `<div class="box"><div class="box-head"><h2>${title}</h2></div><div class="kv">${rows.map(([k, v, env]) =>
     `<div>${k}</div><div>${esc(v)}${env ? `<code>${env}</code>` : ''}</div>`).join('')}</div></div>`;
   $('settings').innerHTML = [
+    `<div class="box"><div class="box-head"><h2>手机号分配策略</h2></div><div class="kv">
+      <div>分配路径</div><div><select id="routing-mode" aria-label="手机号分配策略">
+        <option value="success" ${r.mode === 'success' ? 'selected' : ''}>原有逻辑：按成功率分配</option>
+        <option value="recommended" ${r.mode === 'recommended' ? 'selected' : ''}>网站排名：按 sms.fur.li 国家顺序分配</option>
+      </select></div>
+      <div>网站排名规则</div><div>使用推荐名单按价格从低到高的国家顺序；同一国家内选择运营商，买不到则尝试下一条。</div>
+      <div>生效范围</div><div>保存后对后续取号、换号生效，当前号码继续使用；重启服务后保留选择。</div>
+      <div></div><div><button id="routing-save">保存策略</button> <span id="routing-result" role="status" aria-live="polite"></span></div>
+    </div></div>`,
     group('5SIM', [
       ['运行模式', o.mock ? '模拟（不真实买号）' : '真实', 'FIVESIM_MOCK'],
       ['账户余额', o.balance ?? (o.balanceError || '—')],
@@ -580,6 +590,22 @@ function renderSettings() {
       ['客服联系方式', o.supportContact, 'SUPPORT_CONTACT'],
     ]),
   ].join('');
+  $('routing-save').onclick = async () => {
+    const button = $('routing-save'), select = $('routing-mode'), result = $('routing-result');
+    button.disabled = true; select.disabled = true;
+    result.textContent = '正在保存…';
+    try {
+      const saved = await api('settings/routing', { mode: select.value });
+      overview.routing.mode = saved.mode;
+      select.value = saved.mode;
+      result.textContent = '已保存，后续取号生效';
+    } catch (e) {
+      select.value = overview.routing.mode;
+      result.textContent = e.message;
+    } finally {
+      button.disabled = false; select.disabled = false;
+    }
+  };
 }
 
 // ---------- CDK 详情 ----------

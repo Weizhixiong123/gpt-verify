@@ -402,7 +402,7 @@
     <div class="rank" id="rates" hidden>
       <div class="rank-head"><h2>线路排名</h2><span id="rates-time"></span></div>
       <ol class="rank-grid" id="rate-list"></ol>
-      <p class="rank-desc">百分比是<b>接码成功率</b>：该国家号码最近收到 ChatGPT 验证码的比例，每 5 分钟更新。取号时自动分配成功率最高的线路，没收到验证码换号时会换到其他线路。</p>
+      <p class="rank-desc" id="rate-desc"></p>
     </div>
 
    </div>
@@ -653,6 +653,9 @@ async function loadRates() {
 }
 function drawRates() {
   if (!rates || !rates.list || !rates.list.length) return;
+  $('rate-desc').textContent = rates.mode === 'recommended'
+    ? '按推荐国家顺序分配，跳过不可用线路。百分比为预估接码成功率，不代表国家排序；0% 也可能是统计不足。号码被拒后优先换其他国家。'
+    : '百分比为预估接码成功率。系统综合成功率和价格分配号码，号码被拒后优先换其他国家。';
   const o = state && state.order;
   // 只有正在显示号码或验证码时，才标出用户号码所在的国家
   const mine = o && (current === 'v-phone' || current === 'v-done') ? o.countryName : null;

@@ -171,7 +171,7 @@ const admin = {
       today: q.orderStatsSince.get(midnight),
       week: q.orderStatsSince.get(Date.now() - 7 * 86400e3),
       mock: config.fivesim.mock,
-      routing: config.routing,
+      routing: { ...config.routing, mode: routes.getMode() },
       maxSwaps: config.maxSwaps,
       swapCooldownSec: config.swapCooldownSec,
       pollIntervalMs: config.pollIntervalMs,
@@ -190,6 +190,15 @@ const admin = {
   },
   async 'GET routes'() {
     return routes.snapshot();
+  },
+  async 'POST settings/routing'(req) {
+    const { mode } = await readJson(req);
+    if (!['success', 'recommended'].includes(mode)) throw new ApiError('分配策略无效');
+    try {
+      return await routes.setMode(mode);
+    } catch (err) {
+      throw new ApiError(`切换失败，保留原策略：${err.message}`, 503, 'ROUTING_SWITCH_FAILED');
+    }
   },
   async 'POST cdks'(req) {
     const { count, batch } = await readJson(req);
@@ -324,10 +333,15 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(config.port, config.host, () => {
-  console.log(`gpt-verify listening on http://${config.host}:${config.port}${BASE || '/'}`);
-  if (config.fivesim.mock) console.log('FIVESIM_MOCK=1：使用模拟 5SIM，不会真实买号');
-  else if (!config.fivesim.token) console.warn('警告：未设置 FIVESIM_TOKEN');
-  if (!config.adminToken) console.warn('警告：未设置 ADMIN_TOKEN，管理后台不可用');
-  service.startPoller();
-});
+function start() {
+  server.listen(config.port, config.host, () => {
+    console.log(`gpt-verify listening on http://${config.host}:${config.port}${BASE || '/'}`);
+    if (config.fivesim.mock) console.log('FIVESIM_MOCK=1：使用模拟 5SIM，不会真实买号');
+    else if (!config.fivesim.token) console.warn('警告：未设置 FIVESIM_TOKEN');
+    if (!config.adminToken) console.warn('警告：未设置 ADMIN_TOKEN，管理后台不可用');
+    service.startPoller();
+  });
+}
+
+if (require.main === module) start();
+module.exports = { server, start };

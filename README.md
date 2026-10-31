@@ -10,7 +10,7 @@
 
 | 场景 | 行为 |
 |---|---|
-| 第一次输入 CDK | 从「线路排行」得分最高、且单价 ≤ `PRICE_CAP` 的线路买号（没号自动试下一条） |
+| 第一次输入 CDK | 按后台选择的策略从 5SIM 买号：原有成功率逻辑或 sms.fur.li 国家顺序；库存不足、单价超限或熔断的线路跳过，买不到自动试下一条 |
 | 换号 | 跳过该用户失败过的线路；第 `ESCALATE_AFTER`+1 次起单价上限放宽到 `PRICE_CAP_RETRY` |
 | 线路熔断 | 同一线路 1 小时内连续失败 `BREAKER_FAILS` 单，暂停 `BREAKER_PAUSE_MIN` 分钟 |
 | 刷新页面 / 换设备 | 输入同一个 CDK 恢复当前状态，不会重复买号 |
@@ -25,6 +25,12 @@
 后端重启不影响进行中的订单：启动后会继续轮询数据库里未结束的订单。
 
 被拒线路的排除只针对当前 CDK，不影响其他用户；原 `REJECT_SKIP` 配置不再生效。没收到码的冷却时间和线路重试规则保持不变。
+
+后台「设置 → 手机号分配策略」可以选择「原有逻辑：按成功率分配」或「网站排名：按 sms.fur.li 国家顺序分配」。保存后立即对后续取号、换号生效，不影响当前号码；选择保存在 SQLite，重启后保留。首次未保存时使用 `ROUTING_MODE`，默认 `success`（原逻辑）。
+
+网站排名模式的国家顺序来自 `https://sms.fur.li/api/compare?mode=recommended&country=&provider=&status=&sort=price_asc&summary=1`，这是网站推荐名单按价格从低到高的顺序，不是成功率排名。名单之外的国家不参与取号；同一国家内仍按综合成功率和价格选运营商。0% 或缺少统计的线路也可参与，但仍受库存、价格和熔断限制。后台和用户页按所选策略展示。原成功率模式保留原来的候选筛选、价格及重试规则。
+
+网站排名模式下，推荐接口或 5SIM 刷新失败时保留进程内上次成功的完整线路列表，并在后台显示错误；冷启动没有成功刷新时暂不买号。切换到网站排名前会先验证接口和线路，失败则保留原策略。原成功率模式不依赖推荐网站。更换 `COUNTRY_ORDER_URL` 时应保持相同的 `rows` 数据格式。
 
 ## 本地试跑（模拟 5SIM，不花钱）
 
@@ -169,6 +175,8 @@ CDK：ABCD-EFGH-JKLM-NPQR　使用地址：https://gptsuchong.com/sms?cdk=ABCD-E
 
 - `PRICE_CAP` / `PRICE_CAP_RETRY` / `ESCALATE_AFTER`：前几次取号的单价上限、试错后放宽的上限
 - `EXCLUDE_COUNTRIES`：不想用的国家
+- `ROUTING_MODE`：未在后台保存策略时的初始模式，默认 `success`；`recommended` 为网站排名模式
+- `COUNTRY_ORDER_URL`：网站排名模式的国家顺序接口，默认使用 sms.fur.li 推荐名单的价格顺序
 - `MAX_SWAPS`：每个 CDK 的换号次数（默认 10）
 - `SWAP_COOLDOWN_SEC`：取号后多久可以换号（默认 120 秒）
 
