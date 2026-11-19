@@ -78,8 +78,13 @@
   /* 验证成功后的 Plus 充值推荐：浅绿底，和「已完成」的绿色呼应 */
   .promo { margin: 20px 0 0; padding: 16px 18px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
            background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
+  .promo-home { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .promo-title { margin: 0; font-size: 16px; font-weight: 600; }
   .promo-text { margin: 6px 0 0; font-size: 14px; color: var(--text-2); }
+  .promo-link { padding: 6px 14px; border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+                background: var(--card); color: var(--text); font-size: 13px; }
+  .promo-link:hover { background: var(--soft); }
+  .promo-support { margin-top: 12px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); }
   .promo-text b { color: var(--accent); font: 600 18px var(--num); }
   .promo-text b.hl { font-family: inherit; font-size: 15px; }
   .promo-wx { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 12px;
@@ -265,7 +270,7 @@
 
 <header class="topnav" id="topnav">
   <div class="container">
-    <a class="logo" href="__BASE__" aria-label="GPT 速充 手机验证"><span class="brand-icon" aria-hidden="true"></span><span>GPT 速充</span></a>
+    <a class="logo" href="https://gptsuchong.com/" target="_blank" rel="noopener noreferrer" aria-label="GPT 速充首页"><span class="brand-icon" aria-hidden="true"></span><span>GPT 速充</span></a>
     <!-- 注销放在右上角，远离换号等主操作，避免误点 -->
     <button class="ghost sm nav-void" id="b-void" hidden>注销 CDK（申请退款）</button>
   </div>
@@ -345,12 +350,19 @@
           <div class="ph"><span>使用的手机号</span><b><span class="dial" id="d-dial"></span><span id="d-phone"></span></b></div>
           <button class="ghost sm" data-copy="d-phone">复制号码</button>
         </div>
-        <!-- 验证成功后加客服微信：Plus 首月价（填了 PROMO_PLUS_PRICE 才显示）+ 咨询永久过验方案；没填 SUPPORT_WECHAT 整块不显示 -->
-        <div class="promo" id="promo" hidden>
-          <p class="promo-title">🎉 验证完成！</p>
-          <p class="promo-text" id="promo-plus">加客服微信，ChatGPT Plus 首月充值仅需 <b id="promo-off"></b> 元</p>
-          <p class="promo-text">加客服微信咨询 <b class="hl">ChatGPT 永久过验方案</b></p>
-          <div class="promo-wx"><span>微信：<b id="promo-wx"></b></span><button type="button" class="sm" data-copy="promo-wx">复制微信号</button></div>
+        <div class="promo">
+          <div class="promo-home">
+            <div>
+              <p class="promo-title">ChatGPT Plus 充值</p>
+              <p class="promo-text">3分钟到账，质保30天</p>
+            </div>
+            <a class="btn promo-link" href="https://gptsuchong.com/" target="_blank" rel="noopener noreferrer">前往 GPT 速充</a>
+          </div>
+          <div class="promo-support" id="promo-support" hidden>
+            <p class="promo-text" id="promo-plus">加客服微信，ChatGPT Plus 首月充值仅需 <b id="promo-off"></b> 元</p>
+            <p class="promo-text">加客服微信咨询 <b class="hl">ChatGPT 永久过验方案</b></p>
+            <div class="promo-wx"><span>微信：<b id="promo-wx"></b></span><button type="button" class="sm" data-copy="promo-wx">复制微信号</button></div>
+          </div>
         </div>
         <p class="tip">此 CDK 已使用完毕。号码有效期内如果重新发送验证码，新的验证码也会显示在这里。</p>
       </div>
@@ -640,7 +652,7 @@ document.querySelectorAll('[data-copy]').forEach((btn) => {
   $('promo-off').textContent = sp.promo || '';
   $('promo-wx').textContent = sp.wechat || '';
   $('promo-plus').hidden = !sp.promo;
-  $('promo').hidden = !sp.wechat;
+  $('promo-support').hidden = !sp.wechat;
 })();
 
 // 实时接码成功率
